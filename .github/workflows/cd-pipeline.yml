@@ -49,17 +49,23 @@ jobs:
         uses: azure/setup-kubectl@v4
 
       - name: Configure kubeconfig
+        env:
+          KUBECONFIG_B64: ${{ secrets.DEV_KUBECONFIG }}
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.DEV_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
 
       - name: Set image tag
         id: tag
+        env:
+          IS_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+          DISPATCH_TAG: ${{ github.event.inputs.image_tag }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          if [ "$IS_DISPATCH" == "true" ]; then
+            echo "tag=$DISPATCH_TAG" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=sha-$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+            echo "tag=sha-$(echo "$HEAD_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy to Dev
@@ -119,17 +125,23 @@ jobs:
         uses: azure/setup-kubectl@v4
 
       - name: Configure kubeconfig
+        env:
+          KUBECONFIG_B64: ${{ secrets.STAGING_KUBECONFIG }}
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
 
       - name: Set image tag
         id: tag
+        env:
+          IS_DISPATCH: ${{ github.event_name == 'workflow_dispatch' }}
+          DISPATCH_TAG: ${{ github.event.inputs.image_tag }}
+          HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
         run: |
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          if [ "$IS_DISPATCH" == "true" ]; then
+            echo "tag=$DISPATCH_TAG" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=sha-$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+            echo "tag=sha-$(echo "$HEAD_SHA" | cut -c1-7)" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Deploy to Staging
@@ -186,9 +198,11 @@ jobs:
         uses: azure/setup-kubectl@v4
 
       - name: Configure kubeconfig
+        env:
+          KUBECONFIG_B64: ${{ secrets.PROD_KUBECONFIG }}
         run: |
           mkdir -p ~/.kube
-          echo "${{ secrets.PROD_KUBECONFIG }}" | base64 -d > ~/.kube/config
+          echo "$KUBECONFIG_B64" | base64 -d > ~/.kube/config
 
       - name: Deploy to Production
         run: |
