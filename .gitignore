@@ -1,0 +1,63 @@
+## .NET / ASP.NET Core
+bin/
+obj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+.vs/
+*.pdb
+
+# EF Core
+*.db
+*.db-shm
+*.db-wal
+
+## Node / React frontend
+node_modules/
+dist/
+build/
+.vite/
+*.local
+
+## IDE / Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+## Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+## Secrets / Env files
+**/appsettings.Development.json
+**/appsettings.Local.json
+**/secrets.json
+*.pfx
+*.key
+*.pem
+.env
+.env.*
+!.env.example
+
+## Docker
+docker-compose.override.yml
+
+## Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+
+## Kubernetes / Helm
+**/charts/*.tgz
+kubeconfig*.yaml
