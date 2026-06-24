@@ -1,4 +1,5 @@
 using EnterpriseIDP.Application.Features.CICD.Commands.TriggerPipeline;
+using EnterpriseIDP.Application.Features.CICD.Commands.CreatePipeline;
 using EnterpriseIDP.Application.Features.CICD.Queries.GetPipelines;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +25,13 @@ public class CICDController : ControllerBase
 
     [HttpPost("trigger")]
     public async Task<IActionResult> TriggerPipeline(TriggerPipelineCommand command, CancellationToken ct)
+    {
+        var result = await _mediator.Send(command, ct);
+        return Ok(result);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreatePipeline(CreatePipelineCommand command, CancellationToken ct)
     {
         var result = await _mediator.Send(command, ct);
         return Ok(result);

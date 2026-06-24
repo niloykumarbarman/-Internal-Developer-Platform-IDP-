@@ -1,4 +1,5 @@
 using EnterpriseIDP.Application.Features.Kubernetes.Commands.CreateNamespace;
+using EnterpriseIDP.Application.Features.Kubernetes.Commands.CreateDeployment;
 using EnterpriseIDP.Application.Features.Kubernetes.Queries.GetDeployments;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -24,6 +25,13 @@ public class KubernetesController : ControllerBase
 
     [HttpPost("namespaces")]
     public async Task<IActionResult> CreateNamespace(CreateNamespaceCommand command, CancellationToken ct)
+    {
+        var result = await _mediator.Send(command, ct);
+        return Ok(result);
+    }
+
+    [HttpPost("deployments")]
+    public async Task<IActionResult> CreateDeployment(CreateDeploymentCommand command, CancellationToken ct)
     {
         var result = await _mediator.Send(command, ct);
         return Ok(result);

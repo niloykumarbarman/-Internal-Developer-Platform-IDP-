@@ -1,6 +1,7 @@
 using EnterpriseIDP.Application.Features.Auth.Commands.CreateTeam;
 using EnterpriseIDP.Application.Features.Auth.Commands.LoginUser;
 using EnterpriseIDP.Application.Features.Auth.Commands.RegisterUser;
+using EnterpriseIDP.Application.Features.Auth.Queries.GetTeams;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -36,6 +37,14 @@ public class AuthController : ControllerBase
     public async Task<IActionResult> CreateTeam(CreateTeamCommand command, CancellationToken ct)
     {
         var result = await _mediator.Send(command, ct);
+        return Ok(result);
+    }
+
+    [HttpGet("teams")]
+    [Authorize]
+    public async Task<IActionResult> GetTeams(CancellationToken ct)
+    {
+        var result = await _mediator.Send(new GetTeamsQuery(), ct);
         return Ok(result);
     }
 }
