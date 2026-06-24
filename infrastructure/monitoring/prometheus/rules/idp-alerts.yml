@@ -1,0 +1,47 @@
+groups:
+  - name: EnterpriseIDP
+    interval: 30s
+    rules:
+      - alert: HighHttpErrorRate
+        expr: |
+          rate(idp_http_requests_total{status_code=~"5.."}[5m])
+          / rate(idp_http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "High HTTP error rate on EnterpriseIDP API"
+          description: "Error rate is {{ $value | humanizePercentage }} over last 5m"
+
+      - alert: SlowApiResponse
+        expr: |
+          histogram_quantile(0.95,
+            rate(idp_http_request_duration_seconds_bucket[5m])
+          ) > 2
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "p95 latency > 2s"
+          description: "p95 = {{ $value }}s on endpoint {{ $labels.endpoint }}"
+
+      - alert: IDPApiDown
+        expr: up{job="enterprise-idp-api"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "EnterpriseIDP API is DOWN"
+          description: "IDP API unreachable for more than 1 minute"
+
+      - alert: DatabaseErrors
+        expr: rate(idp_db_errors_total[5m]) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Database errors detected"
+          description: "{{ $value }} DB errors/sec on operation {{ $labels.operation }}"

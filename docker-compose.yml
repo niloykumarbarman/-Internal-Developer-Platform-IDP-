@@ -31,6 +31,66 @@ services:
       timeout: 5s
       retries: 5
 
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: enterpriseidp-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./infrastructure/monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./infrastructure/monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.enable-lifecycle'
+      - '--web.enable-admin-api'
+    ports:
+      - "9090:9090"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: enterpriseidp-grafana
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_USERS_ALLOW_SIGN_UP: false
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./infrastructure/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: enterpriseidp-postgres-exporter
+    restart: unless-stopped
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:postgres@postgres:5432/enterpriseidp?sslmode=disable"
+    ports:
+      - "9187:9187"
+    depends_on:
+      - postgres
+
+  redis-exporter:
+    image: oliver006/redis_exporter:v1.58.0
+    container_name: enterpriseidp-redis-exporter
+    restart: unless-stopped
+    environment:
+      REDIS_ADDR: "redis://redis:6379"
+    ports:
+      - "9121:9121"
+    depends_on:
+      - redis
+
 volumes:
   postgres_data:
   redis_data:
+  prometheus_data:
+  grafana_data:

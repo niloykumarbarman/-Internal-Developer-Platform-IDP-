@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}
+data:
+  ASPNETCORE_ENVIRONMENT: {{ .Values.backend.env.ASPNETCORE_ENVIRONMENT | quote }}
+  GitHub__Organization: {{ .Values.backend.config.githubOrg | quote }}
+  Observability__OtlpEndpoint: {{ .Values.backend.config.otlpEndpoint | quote }}
+  Frontend__Url: {{ .Values.backend.config.frontendUrl | quote }}
+  ConnectionStrings__Redis: {{ .Values.backend.config.redisConnection | quote }}

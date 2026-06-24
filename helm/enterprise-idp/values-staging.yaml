@@ -1,0 +1,33 @@
+replicaCount: 2
+backend:
+  env:
+    ASPNETCORE_ENVIRONMENT: Staging
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 400m
+      memory: 512Mi
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilizationPercentage: 75
+    targetMemoryUtilizationPercentage: 80
+  config:
+    frontendUrl: "https://staging.idp.example.com"
+ingress:
+  enabled: true
+  hosts:
+    - host: staging.idp.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+  tls:
+    - secretName: staging-idp-tls
+      hosts:
+        - staging.idp.example.com

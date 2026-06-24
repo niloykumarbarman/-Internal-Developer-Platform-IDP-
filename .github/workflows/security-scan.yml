@@ -1,0 +1,215 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Daily at 2 AM
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  # --- Trivy Container Scan ---
+  trivy-scan:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy on filesystem
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH,MEDIUM
+          ignore-unfixed: true
+
+      - name: Upload Trivy FS results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-filesystem
+
+      - name: Run Trivy on backend image
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: image
+          image-ref: ghcr.io/${{ github.repository }}/backend:latest
+          format: sarif
+          output: trivy-backend.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+        continue-on-error: true
+
+      - name: Upload Trivy image results
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-backend.sarif
+          category: trivy-backend-image
+        continue-on-error: true
+
+  # --- CodeQL Analysis ---
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      matrix:
+        language: [csharp, javascript]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Setup .NET (for C#)
+        if: matrix.language == 'csharp'
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Build backend (for C#)
+        if: matrix.language == 'csharp'
+        run: |
+          cd src/backend
+          dotnet build EnterpriseIDP.sln -c Release
+
+      - name: Autobuild (for JS)
+        if: matrix.language == 'javascript'
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: ${{ matrix.language }}
+
+  # --- Dependency Scan ---
+  dependency-scan:
+    name: Dependency Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+
+      - name: Check NuGet vulnerabilities
+        run: |
+          cd src/backend
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee nuget-vulnerabilities.txt
+          if grep -q "has the following vulnerable packages" nuget-vulnerabilities.txt; then
+            echo "⚠️ Vulnerable NuGet packages found!"
+            cat nuget-vulnerabilities.txt
+          else
+            echo "✅ No vulnerable NuGet packages found"
+          fi
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+
+      - name: Check npm vulnerabilities
+        run: |
+          cd src/frontend
+          npm audit --audit-level=high || true
+
+      - name: Upload dependency scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-scan-results
+          path: src/backend/nuget-vulnerabilities.txt
+
+  # --- Secret Scanning ---
+  secret-scan:
+    name: Secret Scanning
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+        continue-on-error: true
+
+  # --- Helm Chart Security ---
+  helm-security:
+    name: Helm Chart Security
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.13.0
+
+      - name: Lint Helm charts
+        run: |
+          helm lint helm/enterprise-idp \
+            --values helm/enterprise-idp/values.yaml \
+            --strict
+
+      - name: Run Checkov on Helm
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: helm/
+          framework: helm
+          output_format: sarif
+          output_file_path: checkov-helm.sarif
+        continue-on-error: true
+
+      - name: Run Checkov on Kubernetes manifests
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: infrastructure/kubernetes/
+          framework: kubernetes
+          output_format: sarif
+          output_file_path: checkov-k8s.sarif
+        continue-on-error: true
+
+  # --- Security Report ---
+  security-report:
+    name: Security Report
+    runs-on: ubuntu-latest
+    needs: [trivy-scan, dependency-scan, secret-scan, helm-security]
+    if: always()
+
+    steps:
+      - name: Security Summary
+        run: |
+          echo "## 🔐 Security Scan Summary" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Trivy Container Scan | ${{ needs.trivy-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Dependency Scan | ${{ needs.dependency-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Secret Scan | ${{ needs.secret-scan.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Helm Security | ${{ needs.helm-security.result }} |" >> $GITHUB_STEP_SUMMARY

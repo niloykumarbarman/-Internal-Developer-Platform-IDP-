@@ -22,6 +22,66 @@ namespace EnterpriseIDP.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("AdditionalInfo")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EntityId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("EntityType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("ErrorMessage")
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("IsSuccess")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("NewValues")
+                        .HasColumnType("text");
+
+                    b.Property<string>("OldValues")
+                        .HasColumnType("text");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("UserName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AuditLogs");
+                });
+
             modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Auth.Team", b =>
                 {
                     b.Property<Guid>("Id")
@@ -194,6 +254,60 @@ namespace EnterpriseIDP.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Users", (string)null);
+                });
+
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.BudgetAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("AlertThresholdPercent")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("BudgetLimit")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("CurrentSpend")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsTriggered")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Namespace")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("TeamName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime?>("TriggeredAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamName");
+
+                    b.ToTable("BudgetAlerts");
                 });
 
             modelBuilder.Entity("EnterpriseIDP.Domain.Entities.CICD.Pipeline", b =>
@@ -480,6 +594,69 @@ namespace EnterpriseIDP.Infrastructure.Persistence.Migrations
                     b.ToTable("ServiceTags", (string)null);
                 });
 
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.CostReport", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CpuCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("MemoryCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Namespace")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("NetworkCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Period")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("StorageCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("TeamName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PeriodStart");
+
+                    b.HasIndex("TeamName");
+
+                    b.ToTable("CostReports");
+                });
+
             modelBuilder.Entity("EnterpriseIDP.Domain.Entities.GitOps.Repository", b =>
                 {
                     b.Property<Guid>("Id")
@@ -554,6 +731,101 @@ namespace EnterpriseIDP.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("Repositories", (string)null);
+                });
+
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Incident", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("AffectedService")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("AssignedTo")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Labels")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Resolution")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("ResolvedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("RootCause")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Severity")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Incidents");
+                });
+
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.IncidentTimeline", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Author")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime>("Timestamp")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncidentId");
+
+                    b.ToTable("IncidentTimelines");
                 });
 
             modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Kubernetes.KubernetesDeployment", b =>
@@ -698,6 +970,103 @@ namespace EnterpriseIDP.Infrastructure.Persistence.Migrations
                     b.ToTable("KubernetesNamespaces", (string)null);
                 });
 
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Postmortem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ActionItems")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedBy")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Impact")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<Guid>("IncidentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("LessonsLearned")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("RootCause")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Summary")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<string>("Timeline")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IncidentId")
+                        .IsUnique();
+
+                    b.ToTable("Postmortems");
+                });
+
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.ServiceCost", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("CostReportId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("CpuCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<double>("CpuUsage")
+                        .HasColumnType("double precision");
+
+                    b.Property<decimal>("MemoryCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<double>("MemoryUsage")
+                        .HasColumnType("double precision");
+
+                    b.Property<string>("Namespace")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ReplicaCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ServiceName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CostReportId");
+
+                    b.ToTable("ServiceCosts");
+                });
+
             modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Auth.TeamMember", b =>
                 {
                     b.HasOne("EnterpriseIDP.Domain.Entities.Auth.Team", "Team")
@@ -758,6 +1127,17 @@ namespace EnterpriseIDP.Infrastructure.Persistence.Migrations
                     b.Navigation("Service");
                 });
 
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.IncidentTimeline", b =>
+                {
+                    b.HasOne("EnterpriseIDP.Domain.Entities.Incident", "Incident")
+                        .WithMany("Timeline")
+                        .HasForeignKey("IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Incident");
+                });
+
             modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Kubernetes.KubernetesDeployment", b =>
                 {
                     b.HasOne("EnterpriseIDP.Domain.Entities.Kubernetes.KubernetesNamespace", "Namespace")
@@ -767,6 +1147,28 @@ namespace EnterpriseIDP.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Namespace");
+                });
+
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Postmortem", b =>
+                {
+                    b.HasOne("EnterpriseIDP.Domain.Entities.Incident", "Incident")
+                        .WithOne()
+                        .HasForeignKey("EnterpriseIDP.Domain.Entities.Postmortem", "IncidentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Incident");
+                });
+
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.ServiceCost", b =>
+                {
+                    b.HasOne("EnterpriseIDP.Domain.Entities.CostReport", "CostReport")
+                        .WithMany("ServiceCosts")
+                        .HasForeignKey("CostReportId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CostReport");
                 });
 
             modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Auth.Team", b =>
@@ -789,6 +1191,16 @@ namespace EnterpriseIDP.Infrastructure.Persistence.Migrations
                     b.Navigation("Dependencies");
 
                     b.Navigation("Tags");
+                });
+
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.CostReport", b =>
+                {
+                    b.Navigation("ServiceCosts");
+                });
+
+            modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Incident", b =>
+                {
+                    b.Navigation("Timeline");
                 });
 
             modelBuilder.Entity("EnterpriseIDP.Domain.Entities.Kubernetes.KubernetesNamespace", b =>

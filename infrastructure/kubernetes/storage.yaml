@@ -1,0 +1,126 @@
+# --- StorageClass ---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: enterprise-idp-standard
+  labels:
+    app: enterprise-idp
+provisioner: docker.io/hostpath
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+---
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: enterprise-idp-fast
+  labels:
+    app: enterprise-idp
+provisioner: docker.io/hostpath
+reclaimPolicy: Retain
+allowVolumeExpansion: true
+volumeBindingMode: Immediate
+parameters:
+  type: ssd
+---
+# --- PostgreSQL PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgresql-data-pvc
+  namespace: enterprise-idp
+  labels:
+    app: enterprise-idp
+    component: database
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: enterprise-idp-standard
+  resources:
+    requests:
+      storage: 20Gi
+---
+# --- Redis PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: redis-data-pvc
+  namespace: enterprise-idp
+  labels:
+    app: enterprise-idp
+    component: cache
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: enterprise-idp-fast
+  resources:
+    requests:
+      storage: 5Gi
+---
+# --- Loki PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: loki-data-pvc
+  namespace: monitoring
+  labels:
+    app: loki
+    component: logging
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: enterprise-idp-standard
+  resources:
+    requests:
+      storage: 20Gi
+---
+# --- Prometheus PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data-pvc
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: enterprise-idp-standard
+  resources:
+    requests:
+      storage: 20Gi
+---
+# --- Grafana PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data-pvc
+  namespace: monitoring
+  labels:
+    app: grafana
+    component: monitoring
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: enterprise-idp-standard
+  resources:
+    requests:
+      storage: 5Gi
+---
+# --- Vault PVC ---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: vault-data-pvc
+  namespace: vault
+  labels:
+    app: vault
+    component: secrets
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: enterprise-idp-standard
+  resources:
+    requests:
+      storage: 5Gi

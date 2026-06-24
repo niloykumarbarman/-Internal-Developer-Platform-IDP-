@@ -1,0 +1,100 @@
+{
+  "title": "Enterprise IDP Overview",
+  "uid": "idp-overview",
+  "tags": ["idp", "platform"],
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Total Deployments",
+      "type": "stat",
+      "gridPos": { "x": 0, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "expr": "sum(idp_deployments_total)",
+        "legendFormat": "Total"
+      }],
+      "options": { "colorMode": "background", "graphMode": "area" }
+    },
+    {
+      "id": 2,
+      "title": "Deployment Success Rate",
+      "type": "gauge",
+      "gridPos": { "x": 4, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "expr": "sum(idp_deployments_total{status='success'}) / sum(idp_deployments_total) * 100",
+        "legendFormat": "Success %"
+      }],
+      "options": {
+        "minValue": 0, "maxValue": 100,
+        "thresholds": {
+          "steps": [
+            { "color": "red", "value": 0 },
+            { "color": "yellow", "value": 80 },
+            { "color": "green", "value": 95 }
+          ]
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Active Deployments",
+      "type": "stat",
+      "gridPos": { "x": 8, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "expr": "sum(idp_active_deployments)",
+        "legendFormat": "Active"
+      }]
+    },
+    {
+      "id": 4,
+      "title": "Services in Catalog",
+      "type": "stat",
+      "gridPos": { "x": 12, "y": 0, "w": 4, "h": 4 },
+      "targets": [{
+        "expr": "sum(idp_services_registered_total)",
+        "legendFormat": "Services"
+      }]
+    },
+    {
+      "id": 5,
+      "title": "HTTP Request Rate",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 4, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "sum(rate(http_requests_received_total[5m])) by (status)",
+        "legendFormat": "{{status}}"
+      }]
+    },
+    {
+      "id": 6,
+      "title": "p95 Response Time",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 4, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+        "legendFormat": "p95"
+      }]
+    },
+    {
+      "id": 7,
+      "title": "Deployment Duration by Team",
+      "type": "timeseries",
+      "gridPos": { "x": 0, "y": 12, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(idp_deployment_duration_seconds_bucket[10m])) by (le, team))",
+        "legendFormat": "{{team}} p95"
+      }]
+    },
+    {
+      "id": 8,
+      "title": "Pipeline Runs",
+      "type": "timeseries",
+      "gridPos": { "x": 12, "y": 12, "w": 12, "h": 8 },
+      "targets": [{
+        "expr": "sum(rate(idp_pipeline_runs_total[10m])) by (status)",
+        "legendFormat": "{{status}}"
+      }]
+    }
+  ]
+}

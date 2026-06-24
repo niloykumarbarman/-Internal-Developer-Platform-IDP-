@@ -1,0 +1,140 @@
+# --- Platform Admin ClusterRole ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: enterprise-idp-admin
+  labels:
+    app: enterprise-idp
+    role: admin
+rules:
+  - apiGroups: ["*"]
+    resources: ["*"]
+    verbs: ["*"]
+---
+# --- Platform Engineer ClusterRole ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: enterprise-idp-platform-engineer
+  labels:
+    app: enterprise-idp
+    role: platform-engineer
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets", "statefulsets", "daemonsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "endpoints", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses", "networkpolicies"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["autoscaling"]
+    resources: ["horizontalpodautoscalers"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["monitoring.coreos.com"]
+    resources: ["prometheusrules", "servicemonitors", "podmonitors"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"]
+---
+# --- Developer Role ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: enterprise-idp-developer
+  labels:
+    app: enterprise-idp
+    role: developer
+rules:
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "pods/log", "services", "configmaps", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/exec", "pods/portforward"]
+    verbs: ["create"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+---
+# --- ServiceAccount ---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: enterprise-idp
+  namespace: enterprise-idp
+  labels:
+    app: enterprise-idp
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/role: "enterprise-idp"
+---
+# --- Admin ClusterRoleBinding ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: enterprise-idp-admin-binding
+  labels:
+    app: enterprise-idp
+subjects:
+  - kind: Group
+    name: enterprise-idp:admins
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: enterprise-idp-admin
+  apiGroup: rbac.authorization.k8s.io
+---
+# --- Platform Engineer ClusterRoleBinding ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: enterprise-idp-platform-engineer-binding
+  labels:
+    app: enterprise-idp
+subjects:
+  - kind: Group
+    name: enterprise-idp:platform-engineers
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: enterprise-idp-platform-engineer
+  apiGroup: rbac.authorization.k8s.io
+---
+# --- Developer RoleBinding (namespace scoped) ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: enterprise-idp-developer-binding
+  namespace: enterprise-idp
+  labels:
+    app: enterprise-idp
+subjects:
+  - kind: Group
+    name: enterprise-idp:developers
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: enterprise-idp-developer
+  apiGroup: rbac.authorization.k8s.io
+---
+# --- ServiceAccount ClusterRoleBinding ---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: enterprise-idp-sa-binding
+subjects:
+  - kind: ServiceAccount
+    name: enterprise-idp
+    namespace: enterprise-idp
+roleRef:
+  kind: ClusterRole
+  name: enterprise-idp-platform-engineer
+  apiGroup: rbac.authorization.k8s.io

@@ -1,8 +1,86 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: enterprise-idp
+  name: enterprise-idp-dev
   namespace: argocd
+  labels:
+    environment: dev
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: enterprise-idp
+  source:
+    repoURL: https://github.com/niloykumarbarman/-Internal-Developer-Platform-IDP-.git
+    targetRevision: main
+    path: helm/enterprise-idp
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-dev.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: enterprise-idp-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: enterprise-idp-staging
+  namespace: argocd
+  labels:
+    environment: staging
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: enterprise-idp
+  source:
+    repoURL: https://github.com/niloykumarbarman/-Internal-Developer-Platform-IDP-.git
+    targetRevision: main
+    path: helm/enterprise-idp
+    helm:
+      valueFiles:
+        - values.yaml
+        - values-staging.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: enterprise-idp-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 3m
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: enterprise-idp-prod
+  namespace: argocd
+  labels:
+    environment: prod
   finalizers:
     - resources-finalizer.argocd.argoproj.io
 spec:
@@ -16,11 +94,18 @@ spec:
         - values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: enterprise-idp
+    namespace: enterprise-idp-prod
   syncPolicy:
     automated:
-      prune: true
+      prune: false
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
       - PrunePropagationPolicy=foreground
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m

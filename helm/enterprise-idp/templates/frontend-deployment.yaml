@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-frontend
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: {{ .Release.Name }}-frontend
+    component: frontend
+    environment: {{ .Values.environment }}
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-frontend
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-frontend
+        component: frontend
+        version: {{ .Values.image.tag }}
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.image.registry }}/{{ .Values.frontend.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+            - containerPort: 80
+          resources:
+            limits:
+              cpu: {{ .Values.frontend.resources.limits.cpu }}
+              memory: {{ .Values.frontend.resources.limits.memory }}
+            requests:
+              cpu: {{ .Values.frontend.resources.requests.cpu }}
+              memory: {{ .Values.frontend.resources.requests.memory }}
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: {{ .Release.Name }}-nginx-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ .Release.Name }}-frontend
+  namespace: {{ .Release.Namespace }}
+spec:
+  selector:
+    app: {{ .Release.Name }}-frontend
+  ports:
+    - port: 80
+      targetPort: 80
+  type: ClusterIP

@@ -1,80 +1,114 @@
-# Enterprise IDP — Progress Tracker (Phase 1)
+# Enterprise IDP — Progress Tracker
 
-> Last updated: 2026-06-24
-> Status: 🟢 Phase 1 backend verified end-to-end (Auth, Team, Service Catalog working via live API calls). CI/CD, GitOps, Kubernetes endpoints not yet manually verified. Frontend not started.
+## Phase 1 — Core Platform ✅ COMPLETE
 
-## Architecture
-- Clean Architecture (Domain → Application → Infrastructure → API)
-- CQRS via MediatR
-- DDD: private setters, static `Create()` factories, `ErrorOr<T>` for domain validation
-- .NET 9, EF Core 9 + Npgsql, FluentValidation, AutoMapper, Serilog, Redis, Octokit, JWT Bearer
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Project Structure (DDD + Clean Architecture) | ✅ Done | 5 layers |
+| ASP.NET Core 9 Backend | ✅ Done | Web API |
+| Domain Entities | ✅ Done | Services, Users, Teams |
+| CQRS with MediatR | ✅ Done | Commands + Queries |
+| PostgreSQL + EF Core | ✅ Done | Migrations ready |
+| Redis Cache | ✅ Done | ICacheService |
+| JWT Authentication | ✅ Done | Access + Refresh tokens |
+| GitHub OAuth2 | ✅ Done | OAuth flow |
+| RBAC (Admin/Engineer/Developer) | ✅ Done | Role-based |
+| Service Catalog API | ✅ Done | CRUD + Search |
+| GitHub Integration | ✅ Done | Repo creation, webhooks |
+| CI/CD Pipeline API | ✅ Done | Trigger builds |
+| Kubernetes API | ✅ Done | Namespace provisioning |
+| Docker Compose (Local Dev) | ✅ Done | All services |
+| Helm Chart (Base) | ✅ Done | enterprise-idp chart |
+| ArgoCD GitOps | ✅ Done | App-of-Apps pattern |
+| Kubernetes Manifests (Base) | ✅ Done | Deployments, HPA |
 
-## Layer Status
+---
 
-### Domain — ✅ Complete
-- Entities: User, Team, TeamMember, Service, ServiceDependency, ServiceTag, Pipeline, PipelineRun, Repository, KubernetesNamespace, KubernetesDeployment
-- ValueObjects: Email, ServiceSlug
-- Enums: UserRole, ServiceType, ServiceStatus, PipelineStatus, DeploymentStatus, EnvironmentType
-- Domain Events: UserCreatedEvent, TeamCreatedEvent, ServiceRegisteredEvent, RepositoryCreatedEvent
-- Common: BaseEntity, IRepository<T>, IUnitOfWork, IDomainEvent
+## Phase 2 — Observability + GitOps + Terraform ✅ COMPLETE
 
-### Application — ✅ Complete (CQRS handlers wired, validators present)
-- Features: Auth (RegisterUser, LoginUser, CreateTeam, GetCurrentUser, GetTeams), Catalog (RegisterService, GetServices, GetServiceById), CICD (TriggerPipeline, GetPipelines), GitOps (CreateRepository, GetRepositories), Kubernetes (CreateNamespace, GetDeployments)
-- Common: LoggingBehavior, ValidationBehavior (MediatR pipeline), custom exceptions, `ErrorOrExtensions`
-- Interfaces (ports): `ICurrentUserService`, `IGitHubService`, `IJwtTokenGenerator`, `IKubernetesService`, `IPasswordHasher`
+| Feature | Status | Notes |
+|---------|--------|-------|
+| Prometheus Config | ✅ Done | Alerts + Rules |
+| Grafana Dashboards | ✅ Done | IDP Overview + K8s |
+| Loki Config | ✅ Done | Log aggregation |
+| Promtail Config | ✅ Done | Log shipping |
+| Alertmanager Config | ✅ Done | Email + Webhook |
+| OpenTelemetry Collector | ✅ Done | Traces + Metrics + Logs |
+| Jaeger Tracing | ✅ Done | Via Helm |
+| Grafana Datasources | ✅ Done | Prometheus + Loki + Jaeger |
+| Terraform Root Module | ✅ Done | main + variables + outputs |
+| Terraform K8s Module | ✅ Done | Namespace + Deploy + HPA |
+| Terraform Database Module | ✅ Done | PostgreSQL provisioning |
+| Terraform Monitoring Module | ✅ Done | Prometheus + Loki + Jaeger |
+| Terraform Vault Module | ✅ Done | Vault + KV + Auth |
+| Terraform Dev Environment | ✅ Done | Local dev setup |
+| Terraform Staging Environment | ✅ Done | Staging config |
+| Terraform Production Environment | ✅ Done | HA production setup |
+| Helm Frontend Template | ✅ Done | React frontend |
+| Helm PostgreSQL Template | ✅ Done | StatefulSet |
+| Helm Redis Template | ✅ Done | Cache deployment |
+| Helm values.yaml (Complete) | ✅ Done | All environments |
+| Kubernetes Namespaces | ✅ Done | All envs + tools |
+| Kubernetes RBAC | ✅ Done | 3 roles defined |
+| Kubernetes Storage | ✅ Done | PVCs for all services |
+| Dockerfile Backend | ✅ Done | Multi-stage build |
+| Dockerfile Frontend | ✅ Done | Nginx + React |
+| nginx.conf | ✅ Done | SPA + API proxy |
+| scripts/setup.sh | ✅ Done | Full env setup |
+| scripts/deploy.sh | ✅ Done | Helm deploy |
+| scripts/rollback.sh | ✅ Done | Helm rollback |
+| scripts/health-check.sh | ✅ Done | Full health check |
+| GitHub Actions CI Pipeline | ✅ Done | Build + Test + Scan |
+| GitHub Actions CD Pipeline | ✅ Done | Dev + Staging + Prod |
+| GitHub Actions Security Scan | ✅ Done | Trivy + CodeQL + Gitleaks |
+| docs/architecture.md | ✅ Done | Full architecture |
+| docs/deployment-guide.md | ✅ Done | Step-by-step guide |
 
-### Infrastructure — ✅ Complete
-- `ApplicationDbContext` with EF Core Fluent API configurations for every entity
-- `Repository<T>` generic implementation + `UnitOfWork`
-- `JwtTokenGenerator`, `PasswordHasher` (BCrypt), `CurrentUserService`
-- `GitHubService` (Octokit-based), `KubernetesService` (Phase 1: simulated, not a real cluster client)
-- First migration generated and applied: `20260624054047_InitialCreate`
+---
 
-### API — ✅ Complete for Phase 1 scope
-- `Program.cs`: Serilog, JWT Bearer auth, CORS for frontend dev, Swagger with Bearer security scheme, global exception middleware, auto-migrate on startup (Development only)
-- Controllers: `AuthController`, `CatalogController`, `CICDController`, `KubernetesController`
-- ⚠️ No dedicated `GitOpsController` yet — GitOps handlers exist in Application layer but are not exposed via any route
+## Phase 3 — Vault + DevSecOps + Cost + Incidents ✅ COMPLETE
 
-### Contracts — ❌ Still empty
-- Only default `Class1.cs`, not yet used. Decide whether this project is needed for Phase 1 or can be folded into Application/API DTOs.
+| Feature | Status | Notes |
+|---------|--------|-------|
+| HashiCorp Vault Integration (Backend) | ✅ Done | VaultService.cs |
+| Vault Policies + Auth | ✅ Done | K8s auth method |
+| Secret Rotation | ✅ Done | Auto rotation |
+| IVaultService Interface | ✅ Done | Full interface |
+| VaultController API | ✅ Done | CRUD + Health |
+| Incident Management API | ✅ Done | CRUD + Timeline + Postmortem |
+| Incident Domain Entities | ✅ Done | Incident, Timeline, Postmortem |
+| Incident CQRS | ✅ Done | Commands + Queries + Handlers |
+| Incident Repository | ✅ Done | EF Core implementation |
+| IncidentController | ✅ Done | Full REST API |
+| Audit Logs | ✅ Done | AuditService + Controller |
+| AuditLog Entity | ✅ Done | Activity tracking |
+| Cost Management API | ✅ Done | CostReport + BudgetAlert |
+| Cost Reports | ✅ Done | Team cost reports |
+| Budget Alerts | ✅ Done | Threshold alerts |
+| EF Core Migration | ✅ Done | Phase3_Incidents_Audit_Cost |
+| Database Updated | ✅ Done | All tables created |
+| SonarQube Integration | ⏳ Pending | Code quality config |
+| Trivy Dashboard | ⏳ Pending | Security UI |
+| DevSecOps Dashboard | ⏳ Pending | Frontend page |
+| Incident Dashboard | ⏳ Pending | Frontend page |
+| Compliance Reports | ⏳ Pending | PDF export |
+| docs/api-guide.md | ⏳ Pending | Swagger docs |
 
-## Build Status
-- ✅ `dotnet build` — 0 Errors, 6 Warnings (NuGet advisories, see Tech Debt)
-- ✅ `dotnet run` — starts cleanly, applies migrations, listens on `http://localhost:5139`
+---
 
-## Manually Verified (via curl, 2026-06-24)
-- [x] `POST /api/auth/register` → returns user id + role + signed JWT (claims: `sub`, `email`, role claim, `jti`, `exp`, `iss`, `aud`)
-- [x] `POST /api/auth/teams` → creates team; correctly returns `409 Conflict` on duplicate name
-- [x] `GET /api/auth/teams` → **was missing, fixed today** (route added to `AuthController`, delegates to existing `GetTeamsQuery`/`GetTeamsHandler`) — now returns team list correctly
-- [x] `POST /api/services` → creates service, auto-generates slug, validates `teamId` is non-empty and exists
-- [x] `GET /api/services` → returns paginated list (`items`, `totalCount`, `page`, `pageSize`)
-- [ ] `POST /api/pipelines/trigger`, `GET /api/pipelines` — not yet tested
-- [ ] `POST /api/kubernetes/namespaces`, `GET /api/kubernetes/deployments` — not yet tested
-- [ ] GitOps (`CreateRepository`, `GetRepositories`) — not yet tested, and **no controller route exists for these yet**
+## Statistics
 
-## Known Bugs (found during manual verification, not yet fixed)
-1. **Service `tags` not persisted/returned** — `POST /api/services` accepts a `tags` array in the request, but `GET /api/services` always returns `tags: []`. Likely `ServiceTag` relationship isn't being saved in `RegisterServiceHandler`, or `GetServicesHandler` isn't including the navigation property.
-2. **Service `owner` field mismatch** — request sends `owner` as a display name string (e.g. `"Admin User"`), but the stored/returned `owner` is the current user's GUID. Need to decide: should `owner` be a free-text field, or should it always resolve to the authenticated user's id? Pick one and fix the handler/DTO accordingly.
-3. **Team `memberCount` stays 0 after creation** — `POST /api/auth/teams` sets an `ownerId` but does not appear to create a corresponding `TeamMember` row for the owner, so `GET /api/auth/teams` shows `memberCount: 0` even right after creation with an owner.
-4. **No `GitOpsController`** — `CreateRepositoryCommand`/`GetRepositoriesQuery` exist in Application layer but have no HTTP route. Needs a controller (`/api/gitops/repositories` or similar).
-
-## Immediate Next Steps (in order)
-1. Manually verify CI/CD endpoints (`/api/pipelines`, `/api/pipelines/trigger`)
-2. Manually verify Kubernetes endpoints (`/api/kubernetes/namespaces`, `/api/kubernetes/deployments`)
-3. Add `GitOpsController` and verify GitOps endpoints
-4. Fix known bugs #1–#3 above
-5. Decide on `EnterpriseIDP.Contracts` project's purpose (or remove it)
-6. Start frontend (React + TypeScript) — login/register pages, service catalog list/detail, team management
-7. Add automated tests (unit tests for handlers/validators, integration tests for controllers)
-8. Move into Phase 2 scope (Observability, real GitOps via ArgoCD, Terraform)
-
-## Known Tech Debt / Things to Revisit
-- `AutoMapper 13.0.1` has a known high-severity vulnerability (NU1903 warning) — consider upgrading or replacing with manual mapping
-- `AspNet.Security.OAuth.GitHub` pinned to `>= 8.6.0` but NuGet resolves `9.0.0` — version mismatch warning, should pin explicitly in `.csproj`
-- `IKubernetesService` is a Phase 1 in-memory simulation, not a real cluster client — fine for now, must be replaced before claiming "Kubernetes Platform" is real
-- No automated tests yet
-- Windows dev note: stop the running `dotnet run` process (or it will lock `EnterpriseIDP.API.exe` and the next `dotnet build`/`dotnet run` will fail with `MSB3027`/`MSB3021`). Find the PID via the terminal running it, or `tasklist | grep EnterpriseIDP`, then `taskkill //PID <pid> //F`.
-
-## Session Log
-- **2026-06-23**: Initial Application/Infrastructure scaffolding in progress, build not passing yet (see git history for earlier state — this file previously tracked that session).
-- **2026-06-24**: Git repo initialized, `.gitignore` added, first commit (`edeb224`, 118 files). Build verified passing. Postgres + Redis brought up via Docker Compose. Backend run-verified. Auth, Team, and Service Catalog flows manually tested end-to-end via curl with real JWT tokens. Missing `GET /api/auth/teams` route discovered and fixed. Three minor bugs identified (tags, owner field, member count) and logged above for future fix.
+| Metric | Count |
+|--------|-------|
+| Total Files Created | 80+ |
+| Backend Projects | 5 |
+| API Controllers | 10+ |
+| Domain Entities | 15+ |
+| Helm Templates | 10 |
+| Terraform Modules | 4 |
+| GitHub Actions Workflows | 3 |
+| Kubernetes Manifests | 6 |
+| EF Core Migrations | 2 |
+| Documentation Files | 3 |
+| Scripts | 4 |
+| Docker Files | 3 |

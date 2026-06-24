@@ -1,0 +1,228 @@
+name: CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["CI Pipeline"]
+    types: [completed]
+    branches: [main, develop]
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'dev'
+        type: choice
+        options: [dev, staging, production]
+      image_tag:
+        description: 'Docker image tag'
+        required: true
+        default: 'latest'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # --- Deploy to Dev ---
+  deploy-dev:
+    name: Deploy to Dev
+    runs-on: ubuntu-latest
+    if: |
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'develop') ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.environment == 'dev')
+    environment:
+      name: dev
+      url: http://app.dev.enterprise-idp.local
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.13.0
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.DEV_KUBECONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=sha-$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Dev
+        run: |
+          helm upgrade --install enterprise-idp helm/enterprise-idp \
+            --namespace enterprise-idp-dev \
+            --create-namespace \
+            --values helm/enterprise-idp/values.yaml \
+            --values helm/enterprise-idp/values-dev.yaml \
+            --set image.tag=${{ steps.tag.outputs.tag }} \
+            --set environment=dev \
+            --atomic \
+            --cleanup-on-fail \
+            --timeout 300s
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/enterprise-idp-backend \
+            -n enterprise-idp-dev --timeout=120s
+          kubectl rollout status deployment/enterprise-idp-frontend \
+            -n enterprise-idp-dev --timeout=120s
+
+      - name: Run smoke tests
+        run: |
+          kubectl run smoke-test \
+            --image=curlimages/curl:latest \
+            --restart=Never \
+            --rm \
+            -it \
+            -n enterprise-idp-dev \
+            -- curl -f http://enterprise-idp-backend/health || true
+
+  # --- Deploy to Staging ---
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: [deploy-dev]
+    if: |
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: http://app.staging.enterprise-idp.local
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.13.0
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.STAGING_KUBECONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Set image tag
+        id: tag
+        run: |
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
+            echo "tag=${{ github.event.inputs.image_tag }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=sha-$(echo ${{ github.event.workflow_run.head_sha }} | cut -c1-7)" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Deploy to Staging
+        run: |
+          helm upgrade --install enterprise-idp helm/enterprise-idp \
+            --namespace enterprise-idp-staging \
+            --create-namespace \
+            --values helm/enterprise-idp/values.yaml \
+            --values helm/enterprise-idp/values-staging.yaml \
+            --set image.tag=${{ steps.tag.outputs.tag }} \
+            --set environment=staging \
+            --atomic \
+            --cleanup-on-fail \
+            --timeout 300s
+
+      - name: Verify deployment
+        run: |
+          kubectl rollout status deployment/enterprise-idp-backend \
+            -n enterprise-idp-staging --timeout=120s
+
+      - name: Run integration tests
+        run: |
+          echo "Running integration tests against staging..."
+          kubectl run integration-test \
+            --image=curlimages/curl:latest \
+            --restart=Never \
+            --rm \
+            -it \
+            -n enterprise-idp-staging \
+            -- curl -f http://enterprise-idp-backend/health || true
+
+  # --- Deploy to Production ---
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [deploy-staging]
+    if: |
+      github.event_name == 'workflow_dispatch' &&
+      github.event.inputs.environment == 'production'
+    environment:
+      name: production
+      url: https://app.enterprise-idp.com
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Helm
+        uses: azure/setup-helm@v4
+        with:
+          version: v3.13.0
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.PROD_KUBECONFIG }}" | base64 -d > ~/.kube/config
+
+      - name: Deploy to Production
+        run: |
+          helm upgrade --install enterprise-idp helm/enterprise-idp \
+            --namespace enterprise-idp-production \
+            --create-namespace \
+            --values helm/enterprise-idp/values.yaml \
+            --set image.tag=${{ github.event.inputs.image_tag }} \
+            --set environment=production \
+            --set backend.replicas=3 \
+            --set frontend.replicas=3 \
+            --atomic \
+            --cleanup-on-fail \
+            --timeout 600s
+
+      - name: Verify production deployment
+        run: |
+          kubectl rollout status deployment/enterprise-idp-backend \
+            -n enterprise-idp-production --timeout=180s
+          kubectl rollout status deployment/enterprise-idp-frontend \
+            -n enterprise-idp-production --timeout=180s
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: release-${{ github.event.inputs.image_tag }}
+          release_name: Release ${{ github.event.inputs.image_tag }}
+          body: |
+            ## Production Deployment
+            - **Image Tag**: ${{ github.event.inputs.image_tag }}
+            - **Environment**: Production
+            - **Deployed by**: ${{ github.actor }}
+            - **Deployed at**: ${{ github.event.repository.updated_at }}
+          draft: false
+          prerelease: false

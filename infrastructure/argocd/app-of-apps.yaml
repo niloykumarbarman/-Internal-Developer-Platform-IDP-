@@ -3,12 +3,20 @@ kind: Application
 metadata:
   name: enterprise-idp-apps
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
 spec:
   project: enterprise-idp
   source:
     repoURL: https://github.com/niloykumarbarman/-Internal-Developer-Platform-IDP-.git
     targetRevision: main
     path: infrastructure/argocd
+    directory:
+      recurse: false
+      include: '*.yaml'
+      exclude: 'app-of-apps.yaml'
   destination:
     server: https://kubernetes.default.svc
     namespace: argocd
@@ -16,3 +24,5 @@ spec:
     automated:
       prune: true
       selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

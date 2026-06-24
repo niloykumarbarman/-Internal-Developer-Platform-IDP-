@@ -3,17 +3,42 @@ kind: AppProject
 metadata:
   name: enterprise-idp
   namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
 spec:
   description: Enterprise Internal Developer Platform
   sourceRepos:
     - 'https://github.com/niloykumarbarman/-Internal-Developer-Platform-IDP-.git'
   destinations:
-    - namespace: enterprise-idp
+    - namespace: enterprise-idp-dev
       server: https://kubernetes.default.svc
     - namespace: enterprise-idp-staging
       server: https://kubernetes.default.svc
     - namespace: enterprise-idp-prod
       server: https://kubernetes.default.svc
+    - namespace: argocd
+      server: https://kubernetes.default.svc
   clusterResourceWhitelist:
+    - group: ''
+      kind: Namespace
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRole
+    - group: 'rbac.authorization.k8s.io'
+      kind: ClusterRoleBinding
+  namespaceResourceWhitelist:
     - group: '*'
       kind: '*'
+  roles:
+    - name: platform-engineer
+      description: Platform Engineer role
+      policies:
+        - p, proj:enterprise-idp:platform-engineer, applications, *, enterprise-idp/*, allow
+      groups:
+        - platform-team
+    - name: developer
+      description: Developer read-only role
+      policies:
+        - p, proj:enterprise-idp:developer, applications, get, enterprise-idp/*, allow
+        - p, proj:enterprise-idp:developer, applications, sync, enterprise-idp/*-dev, allow
+      groups:
+        - dev-team

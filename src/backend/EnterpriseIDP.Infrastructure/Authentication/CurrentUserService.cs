@@ -15,18 +15,20 @@ public class CurrentUserService : ICurrentUserService
 
     private ClaimsPrincipal? User => _httpContextAccessor.HttpContext?.User;
 
-    public Guid? UserId
-    {
-        get
-        {
-            var value = User?.FindFirstValue(ClaimTypes.NameIdentifier) ?? User?.FindFirstValue("sub");
-            return Guid.TryParse(value, out var id) ? id : null;
-        }
-    }
+    public string? UserId => User?.FindFirstValue(ClaimTypes.NameIdentifier)
+        ?? User?.FindFirstValue("sub");
+
+    public string? UserName => User?.FindFirstValue(ClaimTypes.Name)
+        ?? User?.FindFirstValue("name");
 
     public string? Email => User?.FindFirstValue(ClaimTypes.Email);
 
     public string? Role => User?.FindFirstValue(ClaimTypes.Role);
+
+    public IEnumerable<string> Roles =>
+        User?.FindAll(ClaimTypes.Role).Select(c => c.Value) ?? Enumerable.Empty<string>();
+
+    public bool IsInRole(string role) => User?.IsInRole(role) ?? false;
 
     public bool IsAuthenticated => User?.Identity?.IsAuthenticated ?? false;
 }

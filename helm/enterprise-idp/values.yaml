@@ -1,64 +1,148 @@
-replicaCount: 1
+# Global
+environment: dev
+replicaCount: 2
 
+image:
+  registry: ghcr.io/enterprise-idp
+  tag: latest
+  pullPolicy: IfNotPresent
+
+# Backend
 backend:
+  replicas: 2
   image:
-    repository: ghcr.io/niloykumarbarman/enterprise-idp-backend
-    tag: "latest"
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 8080
+    repository: backend
   resources:
-    requests:
-      cpu: 250m
-      memory: 256Mi
     limits:
       cpu: 500m
       memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
   env:
-    ASPNETCORE_ENVIRONMENT: Production
+    ASPNETCORE_ENVIRONMENT: Development
+    ASPNETCORE_URLS: http://+:8080
 
+# Frontend
 frontend:
+  replicas: 2
   image:
-    repository: ghcr.io/niloykumarbarman/enterprise-idp-frontend
-    tag: "latest"
-    pullPolicy: IfNotPresent
-  service:
-    type: ClusterIP
-    port: 3000
+    repository: frontend
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
 
+# PostgreSQL
 postgresql:
   enabled: true
-  auth:
-    database: enterprise_idp
-    username: idp_user
-  primary:
-    persistence:
-      size: 10Gi
+  image:
+    tag: "16-alpine"
+  database: enterprise_idp
+  username: idp_user
+  persistence:
+    size: 10Gi
+  resources:
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+    requests:
+      cpu: 250m
+      memory: 256Mi
 
+# Redis
 redis:
   enabled: true
-  auth:
-    enabled: false
-  master:
-    persistence:
-      size: 2Gi
+  image:
+    tag: "7-alpine"
+  persistence:
+    size: 2Gi
+  resources:
+    limits:
+      cpu: 200m
+      memory: 256Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
 
+# Ingress
 ingress:
   enabled: true
   className: nginx
   annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
     cert-manager.io/cluster-issuer: letsencrypt-prod
   hosts:
-    - host: idp.example.com
+    - host: api.enterprise-idp.local
       paths:
-        - path: /api
+        - path: /
           pathType: Prefix
           service: backend
+    - host: app.enterprise-idp.local
+      paths:
         - path: /
           pathType: Prefix
           service: frontend
   tls:
     - secretName: enterprise-idp-tls
       hosts:
-        - idp.example.com
+        - api.enterprise-idp.local
+        - app.enterprise-idp.local
+
+# HPA
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+# Service Account
+serviceAccount:
+  create: true
+  name: enterprise-idp
+  annotations:
+    vault.hashicorp.com/agent-inject: "true"
+    vault.hashicorp.com/role: "enterprise-idp"
+
+# Network Policy
+networkPolicy:
+  enabled: true
+
+# Secrets (override in environment-specific values)
+secrets:
+  postgresqlPassword: "changeme"
+  redisPassword: "changeme"
+  jwtSecret: "changeme-super-secret-jwt-key"
+  githubToken: ""
+  githubClientId: ""
+  githubClientSecret: ""
+
+# ConfigMap
+config:
+  jwtIssuer: "https://enterprise-idp.local"
+  jwtAudience: "enterprise-idp-api"
+  corsOrigins: "http://app.enterprise-idp.local"
+  redisHost: "enterprise-idp-redis"
+  redisPort: "6379"
+
+# Monitoring
+monitoring:
+  enabled: true
+  serviceMonitor:
+    enabled: true
+    interval: 30s
+    path: /metrics
+
+# Resource Quota
+resourceQuota:
+  enabled: true
+  hard:
+    requestsCpu: "4"
+    requestsMemory: "4Gi"
+    limitsCpu: "8"
+    limitsMemory: "8Gi"
+    pods: "20"

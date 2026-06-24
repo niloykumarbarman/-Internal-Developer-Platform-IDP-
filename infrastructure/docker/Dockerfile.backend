@@ -1,0 +1,54 @@
+# --- Build Stage ---
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
+WORKDIR /src
+
+COPY ["src/backend/EnterpriseIDP.API/EnterpriseIDP.API.csproj", "EnterpriseIDP.API/"]
+COPY ["src/backend/EnterpriseIDP.Application/EnterpriseIDP.Application.csproj", "EnterpriseIDP.Application/"]
+COPY ["src/backend/EnterpriseIDP.Domain/EnterpriseIDP.Domain.csproj", "EnterpriseIDP.Domain/"]
+COPY ["src/backend/EnterpriseIDP.Infrastructure/EnterpriseIDP.Infrastructure.csproj", "EnterpriseIDP.Infrastructure/"]
+COPY ["src/backend/EnterpriseIDP.Contracts/EnterpriseIDP.Contracts.csproj", "EnterpriseIDP.Contracts/"]
+
+RUN dotnet restore "EnterpriseIDP.API/EnterpriseIDP.API.csproj"
+
+COPY src/backend/ .
+
+RUN dotnet build "EnterpriseIDP.API/EnterpriseIDP.API.csproj" -c Release -o /app/build
+
+# --- Publish Stage ---
+FROM build AS publish
+RUN dotnet publish "EnterpriseIDP.API/EnterpriseIDP.API.csproj" \
+    -c Release \
+    -o /app/publish \
+    /p:UseAppHost=false \
+    /p:PublishTrimmed=false
+
+# --- Runtime Stage ---
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS runtime
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN addgroup --system --gid 1001 appgroup && \
+    adduser --system --uid 1001 --ingroup appgroup appuser
+
+COPY --from=publish /app/publish .
+
+RUN mkdir -p /var/log/enterprise-idp && \
+    chown -R appuser:appgroup /var/log/enterprise-idp && \
+    chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 8080
+
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV DOTNET_RUNNING_IN_CONTAINER=true
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -f http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["dotnet", "EnterpriseIDP.API.dll"]

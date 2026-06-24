@@ -1,0 +1,11 @@
+# ⚠️ NEVER commit real values — use CI/CD secrets or Vault
+image_tag               = "v1.0.0"
+postgres_host           = "postgres-prod.enterprise-idp.svc.cluster.local"
+postgres_admin_user     = "postgres"
+postgres_admin_password = "REPLACE_WITH_VAULT_SECRET"
+app_db_password         = "REPLACE_WITH_VAULT_SECRET"
+vault_address           = "https://vault.enterprise-idp.com"
+vault_token             = "REPLACE_WITH_CI_SECRET"
+github_token            = "REPLACE_WITH_CI_SECRET"
+github_org              = "enterprise-idp"
+grafana_admin_password  = "REPLACE_WITH_VAULT_SECRET"
