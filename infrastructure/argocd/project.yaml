@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: enterprise-idp
+  namespace: argocd
+spec:
+  description: Enterprise Internal Developer Platform
+  sourceRepos:
+    - 'https://github.com/niloykumarbarman/-Internal-Developer-Platform-IDP-.git'
+  destinations:
+    - namespace: enterprise-idp
+      server: https://kubernetes.default.svc
+    - namespace: enterprise-idp-staging
+      server: https://kubernetes.default.svc
+    - namespace: enterprise-idp-prod
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: '*'
+      kind: '*'

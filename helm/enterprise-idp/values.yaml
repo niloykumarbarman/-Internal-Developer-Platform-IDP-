@@ -1,0 +1,64 @@
+replicaCount: 1
+
+backend:
+  image:
+    repository: ghcr.io/niloykumarbarman/enterprise-idp-backend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 8080
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+  env:
+    ASPNETCORE_ENVIRONMENT: Production
+
+frontend:
+  image:
+    repository: ghcr.io/niloykumarbarman/enterprise-idp-frontend
+    tag: "latest"
+    pullPolicy: IfNotPresent
+  service:
+    type: ClusterIP
+    port: 3000
+
+postgresql:
+  enabled: true
+  auth:
+    database: enterprise_idp
+    username: idp_user
+  primary:
+    persistence:
+      size: 10Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      size: 2Gi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+  hosts:
+    - host: idp.example.com
+      paths:
+        - path: /api
+          pathType: Prefix
+          service: backend
+        - path: /
+          pathType: Prefix
+          service: frontend
+  tls:
+    - secretName: enterprise-idp-tls
+      hosts:
+        - idp.example.com

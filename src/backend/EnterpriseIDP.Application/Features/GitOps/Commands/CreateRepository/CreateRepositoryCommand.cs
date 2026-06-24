@@ -3,15 +3,16 @@ using MediatR;
 namespace EnterpriseIDP.Application.Features.GitOps.Commands.CreateRepository;
 
 public record CreateRepositoryCommand(
-    string Name,
+    string RepositoryName,
     string Description,
-    Guid ServiceId,
-    Guid TeamId,
+    string TeamId,
     bool IsPrivate = true,
-    string DefaultBranch = "main"
+    string Template = "microservice-dotnet"
 ) : IRequest<CreateRepositoryResult>;
 
 public record CreateRepositoryResult(
-    Guid Id, string Name, string FullName,
-    string CloneUrl, string DefaultBranch, DateTime CreatedAt
+    bool Success,
+    string RepositoryUrl,
+    string CloneUrl,
+    string DefaultBranch
 );

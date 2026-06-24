@@ -1,62 +1,74 @@
-using EnterpriseIDP.Application.Common.Exceptions;
-using EnterpriseIDP.Application.Common.Extensions;
-using EnterpriseIDP.Application.Common.Interfaces;
-using EnterpriseIDP.Domain.Common;
-using EnterpriseIDP.Domain.Entities.Catalog;
-using EnterpriseIDP.Domain.Entities.GitOps;
 using MediatR;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 namespace EnterpriseIDP.Application.Features.GitOps.Commands.CreateRepository;
 
 public class CreateRepositoryHandler : IRequestHandler<CreateRepositoryCommand, CreateRepositoryResult>
 {
-    private readonly IRepository<Repository> _repoRepo;
-    private readonly IRepository<Service> _serviceRepo;
-    private readonly IGitHubService _github;
-    private readonly IUnitOfWork _uow;
-    private readonly ICurrentUserService _currentUser;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<CreateRepositoryHandler> _logger;
 
     public CreateRepositoryHandler(
-        IRepository<Repository> repoRepo,
-        IRepository<Service> serviceRepo,
-        IGitHubService github,
-        IUnitOfWork uow,
-        ICurrentUserService currentUser)
+        IHttpClientFactory httpClientFactory,
+        IConfiguration configuration,
+        ILogger<CreateRepositoryHandler> logger)
     {
-        _repoRepo = repoRepo;
-        _serviceRepo = serviceRepo;
-        _github = github;
-        _uow = uow;
-        _currentUser = currentUser;
+        _httpClientFactory = httpClientFactory;
+        _configuration = configuration;
+        _logger = logger;
     }
 
-    public async Task<CreateRepositoryResult> Handle(CreateRepositoryCommand cmd, CancellationToken ct)
+    public async Task<CreateRepositoryResult> Handle(
+        CreateRepositoryCommand request,
+        CancellationToken cancellationToken)
     {
-        var service = await _serviceRepo.GetByIdAsync(cmd.ServiceId, ct)
-            ?? throw new NotFoundException(nameof(Service), cmd.ServiceId);
+        var githubToken = _configuration["GitHub:Token"];
+        var githubOrg = _configuration["GitHub:Organization"];
 
-        if (await _github.RepositoryExistsAsync(cmd.Name, ct))
-            throw new ConflictException($"Repository '{cmd.Name}' already exists.");
+        var client = _httpClientFactory.CreateClient();
+        client.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", githubToken);
+        client.DefaultRequestHeaders.Add("User-Agent", "EnterpriseIDP");
+        client.DefaultRequestHeaders.Add("X-GitHub-Api-Version", "2022-11-28");
 
-        var (repoId, cloneUrl, htmlUrl) = await _github.CreateRepositoryAsync(cmd.Name, cmd.Description, cmd.IsPrivate, ct);
+        var payload = new
+        {
+            name = request.RepositoryName,
+            description = request.Description,
+            @private = request.IsPrivate,
+            auto_init = true,
+            gitignore_template = "VisualStudio"
+        };
 
-        var createdBy = _currentUser.Email ?? "system";
-        var repoResult = Repository.Create(
-            name: cmd.Name,
-            fullName: $"{_github.OrgName}/{cmd.Name}",
-            cloneUrl: cloneUrl,
-            htmlUrl: htmlUrl,
-            gitHubRepoId: repoId,
-            serviceId: cmd.ServiceId,
-            teamId: cmd.TeamId,
-            isPrivate: cmd.IsPrivate,
-            createdBy: createdBy
+        var json = JsonSerializer.Serialize(payload);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var url = string.IsNullOrEmpty(githubOrg)
+            ? "https://api.github.com/user/repos"
+            : $"https://api.github.com/orgs/{githubOrg}/repos";
+
+        var response = await client.PostAsync(url, content, cancellationToken);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync(cancellationToken);
+            _logger.LogError("GitHub repo creation failed: {Error}", error);
+            return new CreateRepositoryResult(false, "", "", "");
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>(
+            cancellationToken: cancellationToken);
+
+        return new CreateRepositoryResult(
+            Success: true,
+            RepositoryUrl: result.GetProperty("html_url").GetString() ?? "",
+            CloneUrl: result.GetProperty("clone_url").GetString() ?? "",
+            DefaultBranch: result.GetProperty("default_branch").GetString() ?? "main"
         );
-
-        var repo = repoResult.ThrowIfError();
-        await _repoRepo.AddAsync(repo, ct);
-        await _uow.SaveChangesAsync(ct);
-
-        return new CreateRepositoryResult(repo.Id, repo.Name, repo.FullName, repo.CloneUrl, repo.DefaultBranch, repo.CreatedAt);
     }
 }
