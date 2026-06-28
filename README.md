@@ -222,7 +222,7 @@ This is the phase that turns the platform from "deploys things" into "operates r
 | Frontend build (`npm run build`) | ✅ Passing | TypeScript strict + Vite production build |
 | Unit tests (`EnterpriseIDP.Tests.Unit`) | ✅ 25 passing | Domain value objects (`ServiceSlug`, `Email`) + `Service` entity business rules |
 | Integration tests (`EnterpriseIDP.Tests.Integration`) | ✅ 11 passing | Auth flow (register/login) + Catalog flow (register/get/conflict/not-found), using `WebApplicationFactory` + EF Core InMemory provider |
-| E2E tests (`EnterpriseIDP.Tests.E2E`) | ⏳ Not yet implemented | Planned: full user journey through running containers |
+| E2E tests (`EnterpriseIDP.Tests.E2E`) | ✅ 3 passing | Full user journey: register→login→create team→register service→catalog verify→fetch by id |
 | Docker Compose stack | ✅ Verified | Postgres, Redis, Prometheus, Grafana all running and healthy |
 
 Run tests locally:
@@ -261,6 +261,24 @@ dotnet run --project EnterpriseIDP.API
 ```
 
 API will be available at `http://localhost:5000`, with Swagger UI at `http://localhost:5000/swagger`.
+
+### Local Kubernetes (kind) Deploy
+
+```bash
+# Prerequisites: Docker, kind, helm, kubectl
+kind create cluster --name idp-local
+docker build -t enterprise-idp-backend:latest src/backend/
+docker build -t enterprise-idp-frontend:latest src/frontend/
+kind load docker-image enterprise-idp-backend:latest enterprise-idp-frontend:latest --name idp-local
+helm install idp helm/enterprise-idp -f helm/enterprise-idp/values-local.yaml --namespace idp --create-namespace
+kubectl get pods -n idp
+```
+
+Verify:
+```bash
+kubectl port-forward -n idp svc/idp-backend 8080:8080 &
+curl http://localhost:8080/health/ready
+```
 
 Full production deployment steps (Kubernetes, Helm, ArgoCD, Terraform): [`docs/deployment-guide.md`](docs/deployment-guide.md)
 
