@@ -15,11 +15,6 @@ services:
         fromDatabase:
           name: enterprise-idp-db
           property: connectionString
-      - key: ConnectionStrings__Redis
-        fromService:
-          name: enterprise-idp-redis
-          type: redis
-          property: connectionString
       - key: Jwt__Secret
         generateValue: true
       - key: Jwt__Issuer
@@ -29,6 +24,8 @@ services:
       - key: Frontend__Url
         value: https://enterprise-idp-frontend.onrender.com
       - key: Observability__OtlpEndpoint
+        value: ""
+      - key: ConnectionStrings__Redis
         value: ""
 
   - type: web
@@ -46,7 +43,3 @@ databases:
     plan: free
     databaseName: enterprise_idp
     user: idp_user
-
-  - name: enterprise-idp-redis
-    plan: free
-    type: redis
