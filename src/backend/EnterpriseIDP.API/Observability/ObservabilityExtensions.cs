@@ -2,9 +2,7 @@ using OpenTelemetry.Resources;
 using OpenTelemetry.Trace;
 using OpenTelemetry.Metrics;
 using Prometheus;
-
 namespace EnterpriseIDP.API.Observability;
-
 public static class ObservabilityExtensions
 {
     public static IServiceCollection AddObservability(
@@ -13,9 +11,8 @@ public static class ObservabilityExtensions
     {
         var serviceName = "enterprise-idp-backend";
         var serviceVersion = "1.0.0";
-        var otlpEndpoint = configuration["Observability:OtlpEndpoint"]
-            ?? "http://localhost:4317";
-
+        var otlpEndpoint = configuration["Observability:OtlpEndpoint"];
+        var hasOtlp = !string.IsNullOrWhiteSpace(otlpEndpoint);
         services.AddOpenTelemetry()
             .ConfigureResource(resource => resource
                 .AddService(serviceName: serviceName, serviceVersion: serviceVersion)
@@ -25,25 +22,27 @@ public static class ObservabilityExtensions
                         configuration["ASPNETCORE_ENVIRONMENT"] ?? "Development",
                     ["team"] = "platform-engineering"
                 }))
-            .WithTracing(tracing => tracing
-                .AddAspNetCoreInstrumentation(opts =>
-                {
-                    opts.RecordException = true;
-                    opts.Filter = ctx =>
-                        !ctx.Request.Path.StartsWithSegments("/health") &&
-                        !ctx.Request.Path.StartsWithSegments("/metrics");
-                })
-                .AddHttpClientInstrumentation(opts => opts.RecordException = true)
-                .AddOtlpExporter(opts => opts.Endpoint = new Uri(otlpEndpoint)))
+            .WithTracing(tracing =>
+            {
+                tracing
+                    .AddAspNetCoreInstrumentation(opts =>
+                    {
+                        opts.RecordException = true;
+                        opts.Filter = ctx =>
+                            !ctx.Request.Path.StartsWithSegments("/health") &&
+                            !ctx.Request.Path.StartsWithSegments("/metrics");
+                    })
+                    .AddHttpClientInstrumentation(opts => opts.RecordException = true);
+                if (hasOtlp)
+                    tracing.AddOtlpExporter(opts => opts.Endpoint = new Uri(otlpEndpoint!));
+            })
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddPrometheusExporter());
-
         return services;
     }
-
     public static IApplicationBuilder UseObservability(
         this IApplicationBuilder app)
     {

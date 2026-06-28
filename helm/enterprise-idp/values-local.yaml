@@ -1,0 +1,65 @@
+# Local kind cluster overrides
+replicaCount: 1
+
+image:
+  registry: ""
+  tag: latest
+  pullPolicy: Never
+
+backend:
+  replicas: 1
+  image:
+    repository: enterprise-idp-backend
+    tag: latest
+    pullPolicy: Never
+  service:
+    port: 8080
+    type: ClusterIP
+  secrets:
+    dbConnection: "Host=idp-postgresql;Port=5432;Database=enterprise_idp;Username=idp_user;Password=changeme"
+    jwtSecret: "local-dev-super-secret-jwt-key-32chars"
+    githubToken: ""
+  config:
+    githubOrg: "local-org"
+    otlpEndpoint: ""
+    frontendUrl: "http://localhost:3000"
+    redisConnection: "idp-redis:6379,password=changeme"
+
+frontend:
+  replicas: 1
+  image:
+    repository: enterprise-idp-frontend
+    tag: latest
+    pullPolicy: Never
+
+postgresql:
+  enabled: true
+
+redis:
+  enabled: true
+
+secrets:
+  postgresqlPassword: "changeme"
+  redisPassword: "changeme"
+
+ingress:
+  enabled: false
+
+autoscaling:
+  enabled: false
+
+monitoring:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+networkPolicy:
+  enabled: false
+
+resourceQuota:
+  enabled: false
+
+serviceAccount:
+  create: true
+  name: enterprise-idp
+  annotations: {}
