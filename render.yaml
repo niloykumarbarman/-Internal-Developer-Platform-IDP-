@@ -34,7 +34,7 @@ services:
     dockerfilePath: ./src/frontend/Dockerfile
     dockerContext: ./src/frontend
     plan: free
-    buildArgs:
+    envVars:
       - key: VITE_API_URL
         value: https://enterprise-idp-backend.onrender.com/api
 
