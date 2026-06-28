@@ -12,9 +12,7 @@ services:
       - key: ASPNETCORE_URLS
         value: http://+:8080
       - key: ConnectionStrings__DefaultConnection
-        fromDatabase:
-          name: enterprise-idp-db
-          property: connectionString
+        value: "Host=aws-1-ap-southeast-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.ejyrfghpjfgepghninru;Password=?wXs%xxSzUf*H$6;SSL Mode=Require;Trust Server Certificate=true"
       - key: Jwt__Secret
         generateValue: true
       - key: Jwt__Issuer
@@ -37,9 +35,3 @@ services:
     envVars:
       - key: VITE_API_URL
         value: https://enterprise-idp-backend.onrender.com/api
-
-databases:
-  - name: enterprise-idp-db
-    plan: free
-    databaseName: enterprise_idp
-    user: idp_user
