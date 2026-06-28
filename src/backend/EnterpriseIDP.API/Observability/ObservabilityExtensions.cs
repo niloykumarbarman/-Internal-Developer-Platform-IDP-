@@ -40,7 +40,8 @@ public static class ObservabilityExtensions
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
-                .AddPrometheusExporter());
+                .AddPrometheusExporter()
+                .AddOtlpExporter(opts => opts.Endpoint = new Uri(otlpEndpoint ?? "")));
         return services;
     }
     public static IApplicationBuilder UseObservability(
