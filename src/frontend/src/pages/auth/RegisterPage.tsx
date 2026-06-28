@@ -1,0 +1,85 @@
+import { useState } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import { apiClient } from '../../api/client'
+import { Zap, Loader2 } from 'lucide-react'
+
+export default function RegisterPage() {
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', role: 'Developer' })
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault(); setLoading(true); setError('')
+    try {
+      await apiClient.post('/auth/register', form)
+      navigate('/login')
+    } catch (err: any) {
+      const data = err.response?.data
+      if (data?.errors) {
+        const firstError = Object.values(data.errors)[0] as string[]
+        setError(firstError?.[0] || data.title || 'Registration failed.')
+      } else {
+        setError(data?.detail || data?.title || data?.message || 'Registration failed.')
+      }
+    } finally { setLoading(false) }
+  }
+
+  const s = {
+    page: { minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'oklch(0.145 0 0)' } as React.CSSProperties,
+    card: { width: 400, background: 'oklch(0.18 0 0)', border: '1px solid oklch(0.28 0 0)', borderRadius: 12, padding: '2rem' } as React.CSSProperties,
+    label: { display: 'block', fontSize: 13, fontWeight: 500, color: 'oklch(0.7 0 0)', marginBottom: 6 } as React.CSSProperties,
+    input: { width: '100%', padding: '0.6rem 0.75rem', background: 'oklch(0.22 0 0)', border: '1px solid oklch(0.32 0 0)', borderRadius: 6, color: 'oklch(0.95 0 0)', fontSize: 14, outline: 'none', boxSizing: 'border-box' } as React.CSSProperties,
+    btn: { width: '100%', padding: '0.7rem', background: 'oklch(0.6 0.2 250)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer' } as React.CSSProperties,
+  }
+
+  return (
+    <div style={s.page}>
+      <div style={s.card}>
+        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 48, height: 48, background: 'oklch(0.6 0.2 250)', borderRadius: 10, marginBottom: 12 }}>
+            <Zap size={24} color="#fff" />
+          </div>
+          <h1 style={{ fontSize: 22, fontWeight: 700, color: 'oklch(0.95 0 0)', marginBottom: 4 }}>Create Account</h1>
+          <p style={{ fontSize: 13, color: 'oklch(0.55 0 0)' }}>Join the platform</p>
+        </div>
+        {error && <div style={{ background: 'oklch(0.6 0.22 27 / 0.15)', border: '1px solid oklch(0.6 0.22 27 / 0.4)', borderRadius: 6, padding: '0.6rem 0.75rem', marginBottom: '1rem', fontSize: 13, color: 'oklch(0.75 0.18 27)' }}>{error}</div>}
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+            <div>
+              <label style={s.label}>First Name</label>
+              <input style={s.input} value={form.firstName} onChange={e => setForm({...form, firstName: e.target.value})} placeholder="John" required />
+            </div>
+            <div>
+              <label style={s.label}>Last Name</label>
+              <input style={s.input} value={form.lastName} onChange={e => setForm({...form, lastName: e.target.value})} placeholder="Doe" required />
+            </div>
+          </div>
+          <div>
+            <label style={s.label}>Email</label>
+            <input style={s.input} type="email" value={form.email} onChange={e => setForm({...form, email: e.target.value})} placeholder="you@company.com" required />
+          </div>
+          <div>
+            <label style={s.label}>Password</label>
+            <input style={s.input} type="password" value={form.password} onChange={e => setForm({...form, password: e.target.value})} placeholder="Min 8 characters" required />
+          </div>
+          <div>
+            <label style={s.label}>Role</label>
+            <select style={{...s.input, cursor: 'pointer'}} value={form.role} onChange={e => setForm({...form, role: e.target.value})}>
+              <option value="Developer">Developer</option>
+              <option value="PlatformEngineer">Platform Engineer</option>
+              <option value="Admin">Admin</option>
+            </select>
+          </div>
+          <button style={s.btn} type="submit" disabled={loading}>
+            {loading ? 'Creating...' : 'Create Account'}
+          </button>
+        </form>
+        <p style={{ textAlign: 'center', marginTop: '1.25rem', fontSize: 13, color: 'oklch(0.55 0 0)' }}>
+          Already have an account?{' '}
+          <Link to="/login" style={{ color: 'oklch(0.6 0.2 250)', textDecoration: 'none' }}>Sign In</Link>
+        </p>
+      </div>
+    </div>
+  )
+}

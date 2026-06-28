@@ -67,3 +67,11 @@ public class ExceptionHandlingMiddleware
         await context.Response.WriteAsync(json);
     }
 }
+
+public static class ExceptionHandlingMiddlewareExtensions
+{
+    public static IApplicationBuilder UseGlobalExceptionHandling(this IApplicationBuilder builder)
+    {
+        return builder.UseMiddleware<ExceptionHandlingMiddleware>();
+    }
+}

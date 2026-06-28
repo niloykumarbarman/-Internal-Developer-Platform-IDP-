@@ -38,7 +38,7 @@ This repo is a from-scratch implementation of that idea, built backend-first wit
 | **Database** | PostgreSQL 16 |
 | **Cache** | Redis 7 |
 | **Auth** | JWT (access + refresh tokens), GitHub OAuth2, RBAC |
-| **Frontend** | React + TypeScript (Vite) — *in progress, see [Roadmap](#-roadmap)* |
+| **Frontend** | React + TypeScript (Vite), TanStack Query, shadcn/ui — ✅ implemented |
 | **Containerization** | Docker, Docker Compose |
 | **Orchestration** | Kubernetes, Helm, ArgoCD (GitOps) |
 | **IaC** | Terraform |
@@ -74,8 +74,8 @@ Building "everything at once" doesn't survive a real code review. Each phase bel
 <tr><th>Phase</th><th>Theme</th><th>Status</th></tr>
 <tr><td>1</td><td>Core Platform — Auth, Catalog, GitHub, CI/CD, Kubernetes</td><td>✅ Complete</td></tr>
 <tr><td>2</td><td>Observability + GitOps + Terraform</td><td>✅ Complete</td></tr>
-<tr><td>3</td><td>Vault + Incident Management + Audit + Cost + DevSecOps</td><td>✅ Backend complete · ⏳ Dashboards pending</td></tr>
-<tr><td>4</td><td>React + TypeScript Frontend</td><td>📋 Planned</td></tr>
+<tr><td>3</td><td>Vault + Incident Management + Audit + Cost + DevSecOps</td><td>✅ Complete (backend + dashboards)</td></tr>
+<tr><td>4</td><td>React + TypeScript Frontend</td><td>✅ Implemented (15 routed pages)</td></tr>
 </table>
 
 ---
@@ -209,14 +209,35 @@ This is the phase that turns the platform from "deploys things" into "operates r
 | Trivy + CodeQL + Checkov + Gitleaks (CI) | ✅ | `security-scan.yml` |
 | SonarCloud config | ✅ | `sonar-project.properties` |
 | API documentation | ✅ | `docs/api-guide.md` |
-| DevSecOps / Incident dashboards (frontend) | ⏳ Pending | Blocked on Phase 4 frontend |
+| DevSecOps / Incident dashboards (frontend) | ✅ Done | DevSecOpsPage.tsx, IncidentPage.tsx — routed in App.tsx |
 | Compliance reports (PDF export) | ⏳ Pending | Next up |
+
+---
+
+## 🧪 Testing & Verification
+
+| Layer | Status | Notes |
+|---|---|---|
+| Backend build (`dotnet build`) | ✅ 0 errors | 4 nuget version warnings (non-blocking) |
+| Frontend build (`npm run build`) | ✅ Passing | TypeScript strict + Vite production build |
+| Unit tests (`EnterpriseIDP.Tests.Unit`) | ✅ 25 passing | Domain value objects (`ServiceSlug`, `Email`) + `Service` entity business rules |
+| Integration tests (`EnterpriseIDP.Tests.Integration`) | ✅ 11 passing | Auth flow (register/login) + Catalog flow (register/get/conflict/not-found), using `WebApplicationFactory` + EF Core InMemory provider |
+| E2E tests (`EnterpriseIDP.Tests.E2E`) | ⏳ Not yet implemented | Planned: full user journey through running containers |
+| Docker Compose stack | ✅ Verified | Postgres, Redis, Prometheus, Grafana all running and healthy |
+
+Run tests locally:
+
+```bash
+cd src/backend
+dotnet test EnterpriseIDP.Tests.Unit
+dotnet test EnterpriseIDP.Tests.Integration
+```
 
 ---
 
 ## 📋 Roadmap
 
-- [ ] **Phase 4** — React + TypeScript frontend (Vite): login, service catalog UI, incident dashboard, DevSecOps security dashboard, cost reports UI
+- [x] **Phase 4** — React + TypeScript frontend (Vite): login, service catalog UI, incident dashboard, DevSecOps security dashboard, cost reports UI
 - [ ] Compliance report PDF export
 - [ ] Database self-service provisioning UI (Postgres + Redis on-demand)
 - [ ] Production Helm values + multi-environment (dev/staging/prod) promotion flow

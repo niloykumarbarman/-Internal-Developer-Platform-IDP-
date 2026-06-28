@@ -1,3 +1,4 @@
+using EnterpriseIDP.API.Middleware;
 using EnterpriseIDP.API.Observability;
 using EnterpriseIDP.Application.DependencyInjection;
 using EnterpriseIDP.Infrastructure;
@@ -7,7 +8,12 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddStructuredLogging();
 
-builder.Services.AddControllers();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -36,6 +42,7 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+app.UseGlobalExceptionHandling();
 app.UseObservability();
 
 if (app.Environment.IsDevelopment())
@@ -89,3 +96,5 @@ app.MapHealthChecks("/health/live", new()
 });
 
 app.Run();
+
+public partial class Program { }

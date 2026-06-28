@@ -38,4 +38,8 @@
     <ProjectReference Include="..\EnterpriseIDP.Contracts\EnterpriseIDP.Contracts.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="EnterpriseIDP.Tests.Integration" />
+    <InternalsVisibleTo Include="EnterpriseIDP.Tests.E2E" />
+  </ItemGroup>
 </Project>

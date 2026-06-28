@@ -1,3 +1,4 @@
+using System.Text;
 using EnterpriseIDP.Application.Common.Interfaces;
 using EnterpriseIDP.Application.Interfaces;
 using EnterpriseIDP.Domain.Common;
@@ -6,9 +7,11 @@ using EnterpriseIDP.Infrastructure.Persistence;
 using EnterpriseIDP.Infrastructure.Persistence.Repositories;
 using EnterpriseIDP.Infrastructure.Repositories;
 using EnterpriseIDP.Infrastructure.Services;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 
 namespace EnterpriseIDP.Infrastructure;
 
@@ -32,6 +35,33 @@ public static class DependencyInjection
         services.AddScoped<IHttpContextAccessorWrapper, HttpContextAccessorWrapper>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+
+        // JWT Authentication
+        var jwtSecret = configuration["Jwt:Secret"] ?? "this-is-a-development-only-secret-key-please-change-it-in-production";
+        var jwtIssuer = configuration["Jwt:Issuer"] ?? "EnterpriseIDP";
+        var jwtAudience = configuration["Jwt:Audience"] ?? "EnterpriseIDP";
+
+        services.AddAuthentication(options =>
+        {
+            options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+            options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        })
+        .AddJwtBearer(options =>
+        {
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+                ValidateIssuer = true,
+                ValidIssuer = jwtIssuer,
+                ValidateAudience = true,
+                ValidAudience = jwtAudience,
+                ValidateLifetime = true,
+                ClockSkew = TimeSpan.FromMinutes(2)
+            };
+        });
+
+        services.AddAuthorization();
 
         // GitHub + Kubernetes
         services.AddScoped<IGitHubService, GitHubService>();
