@@ -22,6 +22,7 @@ public record ServiceListDto(
     ServiceType Type,
     ServiceStatus Status,
     string Owner,
+    string OwnerTeamName,
     string? RepositoryUrl,
     List<string> Tags,
     DateTime CreatedAt

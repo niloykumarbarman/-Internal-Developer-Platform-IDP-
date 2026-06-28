@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { apiClient } from '../../api/client'
-import { Plus, Search, BookOpen, Loader2, X } from 'lucide-react'
+import { servicesApi } from '../../api/services'
+import { teamsApi } from '../../api/teams'
+import { Plus, Search, BookOpen, Loader2, X, AlertCircle } from 'lucide-react'
 
 const StatusBadge = ({ status }: { status: string }) => {
   const map: Record<string, string> = {
@@ -11,38 +12,45 @@ const StatusBadge = ({ status }: { status: string }) => {
   return <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, color: c, background: `${c.replace(')', ' / 0.12)')}` }}>{status}</span>
 }
 
-const mockData = [
-  { id: '1', name: 'api-gateway', type: 'Service', status: 'Active', owner: 'Platform Team', language: 'Go', description: 'Main API gateway for all microservices' },
-  { id: '2', name: 'auth-service', type: 'Service', status: 'Active', owner: 'Security Team', language: 'C#', description: 'JWT + OAuth2 authentication service' },
-  { id: '3', name: 'user-service', type: 'Service', status: 'Active', owner: 'Core Team', language: 'C#', description: 'User management and profiles' },
-  { id: '4', name: 'notification-svc', type: 'Service', status: 'Experimental', owner: 'Core Team', language: 'Node.js', description: 'Email and push notification service' },
-  { id: '5', name: 'legacy-billing', type: 'Service', status: 'Deprecated', owner: 'Finance Team', language: 'Java', description: 'Old billing system (being replaced)' },
-]
-
 export default function CatalogPage() {
   const [search, setSearch] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name: '', type: 'Service', description: '', owner: '', language: '' })
+  const [form, setForm] = useState({ name: '', type: 'Service', description: '', owner: '', teamId: '' })
   const qc = useQueryClient()
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['catalog'],
-    queryFn: () => apiClient.get('/services').then(r => r.data),
+    queryFn: () => servicesApi.getAll(),
+    retry: false,
+  })
+
+  const { data: teams } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => teamsApi.getAll(),
     retry: false,
   })
 
   const createMutation = useMutation({
-    mutationFn: (payload: any) => apiClient.post('/services', payload),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['catalog'] }); setShowForm(false); setForm({ name: '', type: 'Service', description: '', owner: '', language: '' }) },
+    mutationFn: (payload: typeof form) => servicesApi.create({
+      name: payload.name,
+      description: payload.description,
+      type: payload.type as any,
+      owner: payload.owner,
+      teamId: payload.teamId as any,
+      tags: [],
+    } as any),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['catalog'] }); setShowForm(false); setForm({ name: '', type: 'Service', description: '', owner: '', teamId: '' }) },
   })
 
-  const services = data?.items ?? mockData
-  const filtered = services.filter((s: any) =>
+  const services = data?.items ?? []
+  const filtered = services.filter((s) =>
     s.name?.toLowerCase().includes(search.toLowerCase()) ||
-    s.owner?.toLowerCase().includes(search.toLowerCase())
+    s.ownerTeamName?.toLowerCase().includes(search.toLowerCase())
   )
 
-  const inp: React.CSSProperties = { width: '100%', padding: '0.55rem 0.75rem', background: 'oklch(0.22 0 0)', border: '1px solid oklch(0.32 0 0)', borderRadius: 6, color: 'oklch(0.95 0 0)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }
+  const inp: React.CSSProperties = { width: '100%', padding: '0.55rem 0.75rem', background: 'oklch(0.22 0 0)', border: '1px solid oklch(0.32 0 0)', borderRadius:6, color: 'oklch(0.95 0 0)', fontSize: 13, outline: 'none', boxSizing: 'border-box' }
+
+  const canSubmit = form.name.trim() && form.description.trim() && form.owner.trim() && form.teamId
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
@@ -71,12 +79,21 @@ export default function CatalogPage() {
               <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'oklch(0.5 0 0)' }}><X size={18} /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {[['name', 'Service Name'], ['owner', 'Owner Team'], ['language', 'Language/Tech']].map(([field, label]) => (
-                <div key={field}>
-                  <label style={{ display: 'block', fontSize: 12, color: 'oklch(0.6 0 0)', marginBottom: 4 }}>{label}</label>
-                  <input style={inp} value={(form as any)[field]} onChange={e => setForm({ ...form, [field]: e.target.value })} placeholder={label} />
-                </div>
-              ))}
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'oklch(0.6 0 0)', marginBottom: 4 }}>Service Name</label>
+                <input style={inp} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Service Name" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'oklch(0.6 0 0)', marginBottom: 4 }}>Owner (name)</label>
+                <input style={inp} value={form.owner} onChange={e => setForm({ ...form, owner: e.target.value })} placeholder="Owner name" />
+              </div>
+              <div>
+                <label style={{ display: 'block', fontSize: 12, color: 'oklch(0.6 0 0)', marginBottom: 4 }}>Owner Team</label>
+                <select style={{ ...inp, cursor: 'pointer' }} value={form.teamId} onChange={e => setForm({ ...form, teamId: e.target.value })}>
+                  <option value="">Select a team...</option>
+                  {(teams ?? []).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                </select>
+              </div>
               <div>
                 <label style={{ display: 'block', fontSize: 12, color: 'oklch(0.6 0 0)', marginBottom: 4 }}>Type</label>
                 <select style={{ ...inp, cursor: 'pointer' }} value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
@@ -87,7 +104,12 @@ export default function CatalogPage() {
                 <label style={{ display: 'block', fontSize: 12, color: 'oklch(0.6 0 0)', marginBottom: 4 }}>Description</label>
                 <textarea style={{ ...inp, height: 70, resize: 'none' }} value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Short description..." />
               </div>
-              <button onClick={() => createMutation.mutate(form)} disabled={createMutation.isPending} style={{ padding: '0.65rem', background: 'oklch(0.6 0.2 250)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+              {createMutation.isError && (
+                <div style={{ fontSize: 12, color: 'oklch(0.65 0.2 27)' }}>
+                  Failed to register service{(createMutation.error as any)?.message ? `: ${(createMutation.error as any).message}` : ''}
+                </div>
+              )}
+              <button onClick={() => createMutation.mutate(form)} disabled={createMutation.isPending || !canSubmit} style={{ padding: '0.65rem', background: 'oklch(0.6 0.2 250)', border: 'none', borderRadius: 6, color: '#fff', fontSize: 13, fontWeight: 600, cursor: canSubmit ? 'pointer' : 'not-allowed', opacity: canSubmit ? 1 : 0.5, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
                 {createMutation.isPending ? <><Loader2 size={14} /> Registering...</> : 'Register Service'}
               </button>
             </div>
@@ -100,15 +122,26 @@ export default function CatalogPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid oklch(0.25 0 0)' }}>
-              {['Service', 'Type', 'Owner', 'Language', 'Status'].map(h => (
+              {['Service', 'Type', 'Owner Team', 'Status'].map(h => (
                 <th key={h} style={{ padding: '0.75rem 1rem', textAlign: 'left', fontSize: 12, fontWeight: 600, color: 'oklch(0.5 0 0)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'oklch(0.5 0 0)' }}><Loader2 size={20} /></td></tr>
-            ) : filtered.map((svc: any) => (
+              <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'oklch(0.5 0 0)' }}><Loader2 size={20} /></td></tr>
+            ) : isError ? (
+              <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'oklch(0.65 0.2 27)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+                  <AlertCircle size={20} />
+                  <span style={{ fontSize: 13 }}>Failed to load services{(error as any)?.message ? `: ${(error as any).message}` : ''}</span>
+                </div>
+              </td></tr>
+            ) : filtered.length === 0 ? (
+              <tr><td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'oklch(0.5 0 0)', fontSize: 13 }}>
+                {search ? 'No services match your search.' : 'No services registered yet.'}
+              </td></tr>
+            ) : filtered.map((svc) => (
               <tr key={svc.id} style={{ borderBottom: '1px solid oklch(0.22 0 0)' }}>
                 <td style={{ padding: '0.85rem 1rem' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -120,8 +153,7 @@ export default function CatalogPage() {
                   </div>
                 </td>
                 <td style={{ padding: '0.85rem 1rem', fontSize: 13, color: 'oklch(0.65 0 0)' }}>{svc.type}</td>
-                <td style={{ padding: '0.85rem 1rem', fontSize: 13, color: 'oklch(0.65 0 0)' }}>{svc.owner}</td>
-                <td style={{ padding: '0.85rem 1rem', fontSize: 13, color: 'oklch(0.65 0 0)' }}>{svc.language}</td>
+                <td style={{ padding: '0.85rem 1rem', fontSize: 13, color: 'oklch(0.65 0 0)' }}>{svc.ownerTeamName}</td>
                 <td style={{ padding: '0.85rem 1rem' }}><StatusBadge status={svc.status || 'Active'} /></td>
               </tr>
             ))}

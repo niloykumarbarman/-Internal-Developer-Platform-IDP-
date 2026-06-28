@@ -1,8 +1,8 @@
 import { apiClient } from './client'
-import type { Service } from '../types'
+import type { Service, PagedResult } from '../types'
 
 export const servicesApi = {
-  getAll: async (): Promise<Service[]> => {
+  getAll: async (): Promise<PagedResult<Service>> => {
     const res = await apiClient.get('/services')
     return res.data
   },
