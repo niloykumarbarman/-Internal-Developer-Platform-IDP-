@@ -3,11 +3,8 @@ using EnterpriseIDP.API.Observability;
 using EnterpriseIDP.Application.DependencyInjection;
 using EnterpriseIDP.Infrastructure;
 using Serilog;
-
 var builder = WebApplication.CreateBuilder(args);
-
 builder.AddStructuredLogging();
-
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
@@ -16,11 +13,9 @@ builder.Services.AddControllers()
     });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-
 builder.Services.AddObservability(builder.Configuration);
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
-
 builder.Services.AddHealthChecks()
     .AddNpgSql(
         builder.Configuration.GetConnectionString("DefaultConnection")!,
@@ -30,7 +25,6 @@ builder.Services.AddHealthChecks()
         builder.Configuration.GetConnectionString("Redis")!,
         name: "redis",
         tags: ["cache", "ready"]);
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
@@ -39,18 +33,11 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .AllowAnyHeader());
 });
-
 var app = builder.Build();
-
 app.UseGlobalExceptionHandling();
 app.UseObservability();
-
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
-
+app.UseSwagger();
+app.UseSwaggerUI();
 app.UseSerilogRequestLogging(options =>
 {
     options.MessageTemplate =
@@ -64,12 +51,10 @@ app.UseSerilogRequestLogging(options =>
             httpContext.User.FindFirst("sub")?.Value ?? "anonymous");
     };
 });
-
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-
 app.MapHealthChecks("/health/ready", new()
 {
     Predicate = check => check.Tags.Contains("ready"),
@@ -89,12 +74,9 @@ app.MapHealthChecks("/health/ready", new()
         await ctx.Response.WriteAsync(result);
     }
 });
-
 app.MapHealthChecks("/health/live", new()
 {
     Predicate = _ => false
 });
-
 app.Run();
-
 public partial class Program { }

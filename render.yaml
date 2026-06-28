@@ -1,0 +1,52 @@
+services:
+  - type: web
+    name: enterprise-idp-backend
+    runtime: docker
+    dockerfilePath: ./src/backend/Dockerfile
+    dockerContext: ./src/backend
+    plan: free
+    healthCheckPath: /health/live
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: enterprise-idp-db
+          property: connectionString
+      - key: ConnectionStrings__Redis
+        fromService:
+          name: enterprise-idp-redis
+          type: redis
+          property: connectionString
+      - key: Jwt__Secret
+        generateValue: true
+      - key: Jwt__Issuer
+        value: EnterpriseIDP
+      - key: Jwt__Audience
+        value: EnterpriseIDP
+      - key: Frontend__Url
+        value: https://enterprise-idp-frontend.onrender.com
+      - key: Observability__OtlpEndpoint
+        value: ""
+
+  - type: web
+    name: enterprise-idp-frontend
+    runtime: docker
+    dockerfilePath: ./src/frontend/Dockerfile
+    dockerContext: ./src/frontend
+    plan: free
+    buildArgs:
+      - key: VITE_API_URL
+        value: https://enterprise-idp-backend.onrender.com/api
+
+databases:
+  - name: enterprise-idp-db
+    plan: free
+    databaseName: enterprise_idp
+    user: idp_user
+
+  - name: enterprise-idp-redis
+    plan: free
+    type: redis
