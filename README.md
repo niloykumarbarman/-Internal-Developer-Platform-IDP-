@@ -12,13 +12,24 @@ Built to demonstrate senior-level skills in **Platform Engineering, DevOps, Clou
 [![Kubernetes](https://img.shields.io/badge/Kubernetes-Helm%20%2B%20ArgoCD-326CE5?logo=kubernetes)](https://kubernetes.io/)
 [![Terraform](https://img.shields.io/badge/Terraform-IaC-7B42BC?logo=terraform)](https://www.terraform.io/)
 [![Vault](https://img.shields.io/badge/HashiCorp-Vault-FFEC6E?logo=vault&logoColor=black)](https://www.vaultproject.io/)
+[![Live](https://img.shields.io/badge/Status-Live%20on%20Render-brightgreen?logo=render)](https://enterprise-idp-backend.onrender.com/health/live)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
 [Architecture](docs/architecture.md) · [API Guide](docs/api-guide.md) · [Deployment Guide](docs/deployment-guide.md) · [Progress Tracker](PROGRESS.md)
 
 </div>
 
-> 📸 *Screenshots / demo GIF of the platform dashboard, service catalog, and incident timeline go here once the frontend is live.*
+---
+
+## 🌐 Live Demo
+
+> Deployed on **Render** with full CI/CD via GitHub → Render Blueprint (`render.yaml`)
+
+| Service | URL | Status |
+|---------|-----|--------|
+| 🖥️ Frontend | [enterprise-idp-frontend.onrender.com](https://enterprise-idp-frontend.onrender.com) | 🟢 Live |
+| ⚙️ Backend API | [enterprise-idp-backend.onrender.com/swagger](https://enterprise-idp-backend.onrender.com/swagger) | 🟢 Live |
+| ❤️ Health Check | [/health/live](https://enterprise-idp-backend.onrender.com/health/live) | 🟢 Healthy |
 
 ---
 
@@ -35,23 +46,50 @@ This repo is a from-scratch implementation of that idea, built backend-first wit
 | Layer | Technology |
 |---|---|
 | **Backend** | ASP.NET Core 9 Web API, C#, MediatR (CQRS), EF Core |
-| **Database** | PostgreSQL 16 |
-| **Cache** | Redis 7 |
+| **Database** | PostgreSQL 16 (Supabase cloud) |
+| **Cache** | Redis 7 (Upstash cloud) |
 | **Auth** | JWT (access + refresh tokens), GitHub OAuth2, RBAC |
 | **Frontend** | React + TypeScript (Vite), TanStack Query, shadcn/ui — ✅ implemented |
 | **Containerization** | Docker, Docker Compose |
 | **Orchestration** | Kubernetes, Helm, ArgoCD (GitOps) |
-| **IaC** | Terraform |
+| **IaC** | Terraform + Render Blueprint (`render.yaml`) |
 | **Secrets** | HashiCorp Vault (Kubernetes auth method) |
-| **Observability** | Prometheus, Grafana, Loki, Promtail, OpenTelemetry, Jaeger, Alertmanager |
-| **CI/CD** | GitHub Actions, GHCR (container registry) |
+| **Observability** | Prometheus, Grafana Cloud, Loki, Promtail, OpenTelemetry, Jaeger, Alertmanager |
+| **CI/CD** | GitHub Actions, GHCR, Render Auto Deploy |
 | **DevSecOps** | Trivy, CodeQL, Checkov, Gitleaks, SonarCloud |
+| **Hosting** | Render.com (Blueprint IaC deployment) |
 
 ---
 
 ## 🏗️ Architecture
 
-Clean Architecture with four backend layers, talking through CQRS via MediatR:
+### Cloud Deployment Architecture (Render)
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                     GitHub Repository                    │
+│              (Push → Auto Deploy via Render)             │
+└──────────────────────┬──────────────────────────────────┘
+                       │ render.yaml Blueprint
+         ┌─────────────┴──────────────┐
+         ▼                            ▼
+┌────────────────┐          ┌──────────────────────┐
+│    Frontend    │          │      Backend API      │
+│ (React + Vite) │          │  (ASP.NET Core .NET)  │
+│ Static Site    │◄────────►│  Web Service          │
+│ Render CDN     │   REST   │  Port 8080            │
+└────────────────┘          └──────────┬───────────┘
+                                       │
+                    ┌──────────────────┼──────────────────┐
+                    ▼                  ▼                   ▼
+           ┌──────────────┐  ┌──────────────┐  ┌──────────────────┐
+           │  PostgreSQL  │  │    Redis     │  │  Grafana Cloud   │
+           │  (Supabase)  │  │  (Upstash)   │  │  OTLP Metrics    │
+           │  ap-southeast│  │  Mumbai      │  │  + Traces + Logs │
+           └──────────────┘  └──────────────┘  └──────────────────┘
+```
+
+### Application Architecture (Clean Architecture + CQRS)
 
 ```
 src/backend/
@@ -76,6 +114,7 @@ Building "everything at once" doesn't survive a real code review. Each phase bel
 <tr><td>2</td><td>Observability + GitOps + Terraform</td><td>✅ Complete</td></tr>
 <tr><td>3</td><td>Vault + Incident Management + Audit + Cost + DevSecOps</td><td>✅ Complete (backend + dashboards)</td></tr>
 <tr><td>4</td><td>React + TypeScript Frontend</td><td>✅ Implemented (15 routed pages)</td></tr>
+<tr><td>5</td><td>Cloud Deployment — Render Blueprint, Supabase, Upstash, Grafana Cloud</td><td>✅ Live in Production</td></tr>
 </table>
 
 ---
@@ -209,8 +248,42 @@ This is the phase that turns the platform from "deploys things" into "operates r
 | Trivy + CodeQL + Checkov + Gitleaks (CI) | ✅ | `security-scan.yml` |
 | SonarCloud config | ✅ | `sonar-project.properties` |
 | API documentation | ✅ | `docs/api-guide.md` |
-| DevSecOps / Incident dashboards (frontend) | ✅ Done | DevSecOpsPage.tsx, IncidentPage.tsx — routed in App.tsx |
+| DevSecOps / Incident dashboards (frontend) | ✅ | DevSecOpsPage.tsx, IncidentPage.tsx |
 | Compliance reports (PDF export) | ⏳ Pending | Next up |
+
+---
+
+## ✅ Phase 5 — Cloud Deployment (Production)
+
+Taking the platform from local Docker Compose to **fully managed cloud infrastructure**, deployed and live.
+
+### ☁️ Infrastructure
+| Component | Provider | Details |
+|-----------|----------|---------|
+| Backend Hosting | [Render.com](https://render.com) | Web Service, auto-deploy on push |
+| Frontend Hosting | [Render.com](https://render.com) | Static Site, global CDN |
+| Database | [Supabase](https://supabase.com) | PostgreSQL, `ap-southeast-2`, SSL enforced |
+| Cache | [Upstash](https://upstash.com) | Redis, Mumbai region, TLS enabled |
+| Observability | [Grafana Cloud](https://grafana.com) | OTLP metrics + traces, `ap-south-1` |
+| IaC | `render.yaml` Blueprint | One-click full stack deploy |
+| CI/CD | GitHub → Render | Auto deploy on every `main` push |
+
+### 🔧 Environment Variables (Production)
+| Variable | Purpose |
+|----------|---------|
+| `ASPNETCORE_ENVIRONMENT` | `Production` |
+| `ConnectionStrings__DefaultConnection` | Supabase PostgreSQL |
+| `ConnectionStrings__Redis` | Upstash Redis (TLS) |
+| `Jwt__Secret` | JWT signing key |
+| `Observability__OtlpEndpoint` | Grafana OTLP gateway |
+| `OTEL_EXPORTER_OTLP_HEADERS` | Grafana auth (Basic) |
+| `Frontend__Url` | CORS origin whitelist |
+
+### 📊 Observability in Production
+- **Metrics** → Grafana Cloud via `OtlpMetricExporter` (every 60s)
+- **Traces** → Grafana Cloud via `OtlpTraceExporter` (HttpProtobuf)
+- **Logs** → Serilog structured JSON with `RequestId`, `UserId`, `Application`, `Version`
+- **Health** → `/health/live` polled every 5s by Render
 
 ---
 
@@ -220,10 +293,11 @@ This is the phase that turns the platform from "deploys things" into "operates r
 |---|---|---|
 | Backend build (`dotnet build`) | ✅ 0 errors | 4 nuget version warnings (non-blocking) |
 | Frontend build (`npm run build`) | ✅ Passing | TypeScript strict + Vite production build |
-| Unit tests (`EnterpriseIDP.Tests.Unit`) | ✅ 25 passing | Domain value objects (`ServiceSlug`, `Email`) + `Service` entity business rules |
-| Integration tests (`EnterpriseIDP.Tests.Integration`) | ✅ 11 passing | Auth flow (register/login) + Catalog flow (register/get/conflict/not-found), using `WebApplicationFactory` + EF Core InMemory provider |
-| E2E tests (`EnterpriseIDP.Tests.E2E`) | ✅ 3 passing | Full user journey: register→login→create team→register service→catalog verify→fetch by id |
-| Docker Compose stack | ✅ Verified | Postgres, Redis, Prometheus, Grafana all running and healthy |
+| Unit tests (`EnterpriseIDP.Tests.Unit`) | ✅ 25 passing | Domain value objects + entity business rules |
+| Integration tests (`EnterpriseIDP.Tests.Integration`) | ✅ 11 passing | Auth flow + Catalog flow, `WebApplicationFactory` + EF Core InMemory |
+| E2E tests (`EnterpriseIDP.Tests.E2E`) | ✅ 3 passing | Full user journey: register→login→create team→register service→verify |
+| Docker Compose stack | ✅ Verified | Postgres, Redis, Prometheus, Grafana all healthy |
+| Production health check | ✅ Live | `GET /health/live → 200 Healthy` |
 
 Run tests locally:
 
@@ -238,6 +312,7 @@ dotnet test EnterpriseIDP.Tests.Integration
 ## 📋 Roadmap
 
 - [x] **Phase 4** — React + TypeScript frontend (Vite): login, service catalog UI, incident dashboard, DevSecOps security dashboard, cost reports UI
+- [x] **Phase 5** — Cloud deployment: Render + Supabase + Upstash + Grafana Cloud
 - [ ] Compliance report PDF export
 - [ ] Database self-service provisioning UI (Postgres + Redis on-demand)
 - [ ] Production Helm values + multi-environment (dev/staging/prod) promotion flow
@@ -280,7 +355,7 @@ kubectl port-forward -n idp svc/idp-backend 8080:8080 &
 curl http://localhost:8080/health/ready
 ```
 
-Full production deployment steps (Kubernetes, Helm, ArgoCD, Terraform): [`docs/deployment-guide.md`](docs/deployment-guide.md)
+Full production deployment steps: [`docs/deployment-guide.md`](docs/deployment-guide.md)
 
 ---
 
@@ -290,7 +365,7 @@ Full production deployment steps (Kubernetes, Helm, ArgoCD, Terraform): [`docs/d
 |---|---|
 | [`docs/architecture.md`](docs/architecture.md) | System architecture, layer responsibilities, data flow |
 | [`docs/api-guide.md`](docs/api-guide.md) | Full REST API reference for all 10 controllers |
-| [`docs/deployment-guide.md`](docs/deployment-guide.md) | Production deployment via Kubernetes/Helm/ArgoCD |
+| [`docs/deployment-guide.md`](docs/deployment-guide.md) | Production deployment via Kubernetes/Helm/ArgoCD/Render |
 | [`PROGRESS.md`](PROGRESS.md) | Granular, file-level build progress tracker |
 
 ---
