@@ -49,7 +49,7 @@ This repo is a from-scratch implementation of that idea, built backend-first wit
 | **Database** | PostgreSQL 16 (Supabase cloud) |
 | **Cache** | Redis 7 (Upstash cloud) |
 | **Auth** | JWT (access + refresh tokens), GitHub OAuth2, RBAC |
-| **Frontend** | React + TypeScript (Vite), TanStack Query, shadcn/ui — ✅ implemented |
+| **Frontend** | React 19, TypeScript 6, Vite 8, TanStack Query v5, shadcn/ui, Radix UI, Zustand, React Router v7, Axios, Tailwind CSS v4, Lucide React — ✅ implemented |
 | **Containerization** | Docker, Docker Compose |
 | **Orchestration** | Kubernetes, Helm, ArgoCD (GitOps) |
 | **IaC** | Terraform + Render Blueprint (`render.yaml`) |
