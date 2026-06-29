@@ -34,14 +34,14 @@ public static class ObservabilityExtensions
                     })
                     .AddHttpClientInstrumentation(opts => opts.RecordException = true);
                 if (hasOtlp)
-                    tracing.AddOtlpExporter(opts => { opts.Endpoint = new Uri(otlpEndpoint!); opts.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf; opts.Headers = configuration["Observability:OtlpHeaders"] ?? ""; });
+                    tracing.AddOtlpExporter(opts => { opts.Endpoint = new Uri(otlpEndpoint!); opts.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;  });
             })
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddPrometheusExporter()
-                .AddOtlpExporter(opts => { if (!string.IsNullOrWhiteSpace(otlpEndpoint)) { opts.Endpoint = new Uri(otlpEndpoint); opts.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf; opts.Headers = configuration["Observability:OtlpHeaders"] ?? ""; } }));
+                .AddOtlpExporter(opts => { if (!string.IsNullOrWhiteSpace(otlpEndpoint)) { opts.Endpoint = new Uri(otlpEndpoint); opts.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf;  } }));
         return services;
     }
     public static IApplicationBuilder UseObservability(
