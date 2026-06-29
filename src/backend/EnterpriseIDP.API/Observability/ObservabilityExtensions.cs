@@ -41,7 +41,7 @@ public static class ObservabilityExtensions
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation()
                 .AddPrometheusExporter()
-                .AddOtlpExporter(opts => { if (!string.IsNullOrWhiteSpace(otlpEndpoint)) { opts.Endpoint = new Uri(otlpEndpoint); opts.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf; } }));
+                .AddOtlpExporter(opts => { if (!string.IsNullOrWhiteSpace(otlpEndpoint)) { opts.Endpoint = new Uri(otlpEndpoint); opts.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf; opts.Headers = configuration["Observability:OtlpHeaders"] ?? ""; } }));
         return services;
     }
     public static IApplicationBuilder UseObservability(
