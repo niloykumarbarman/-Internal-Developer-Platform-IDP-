@@ -34,7 +34,7 @@ public static class ObservabilityExtensions
                     })
                     .AddHttpClientInstrumentation(opts => opts.RecordException = true);
                 if (hasOtlp)
-                    tracing.AddOtlpExporter(opts => opts.Endpoint = new Uri(otlpEndpoint!));
+                    tracing.AddOtlpExporter(opts => { opts.Endpoint = new Uri(otlpEndpoint!); opts.Protocol = OpenTelemetry.Exporter.OtlpExportProtocol.HttpProtobuf; opts.Headers = configuration["Observability:OtlpHeaders"] ?? ""; });
             })
             .WithMetrics(metrics => metrics
                 .AddAspNetCoreInstrumentation()
